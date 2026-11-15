@@ -1,0 +1,35 @@
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sacl-app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    volumes:
+      - sacl-app-data:/app/data
+    depends_on:
+      - database
+    restart: unless-stopped
+
+  database:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: sacl-sql2025
+    hostname: sacl-sql2025
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sacl-sql-data:/var/opt/mssql
+    restart: unless-stopped
+
+volumes:
+  sacl-app-data:
+  sacl-sql-data:
