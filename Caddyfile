@@ -1,7 +1,0 @@
-{$APP_DOMAIN:localhost} {
-  reverse_proxy frontend:80
-}
-
-{$API_DOMAIN:api.localhost} {
-  reverse_proxy backend:5000
-}
