@@ -7,18 +7,18 @@ import type {
   CompanyRecord,
   FormIdentifier,
   UserRole,
-} from './frontend/src/types/pcms.ts';
+} from '../frontend/src/types/pcms.ts';
 import {
   applyWorkflowDecision,
   canAdvancePTRStage,
   canUserApproveStage,
   syncInterconnectedFields,
-} from './frontend/src/utils/workflow.ts';
+} from '../frontend/src/utils/workflow.ts';
 import {
   buildSeedDatabase,
   createBlankChangeRequest,
   type DatabaseSchema,
-} from './server/seedData.ts';
+} from './previewSeedData.ts';
 
 const PORT = 3000;
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -550,6 +550,8 @@ async function startServer() {
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
+      configFile: path.resolve(process.cwd(), 'frontend/vite.config.ts'),
+      root: path.resolve(process.cwd(), 'frontend'),
       server: { middlewareMode: true },
       appType: 'spa',
     });

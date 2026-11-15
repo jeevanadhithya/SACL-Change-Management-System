@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
-    "start": "node server.ts",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "tsx backend/previewServer.ts",
+    "start": "tsx backend/previewServer.ts",
+    "build": "vite build frontend --config frontend/vite.config.ts --outDir ../dist --emptyOutDir",
+    "preview": "vite preview frontend --config frontend/vite.config.ts --outDir ../dist",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc -p frontend/tsconfig.json --noEmit"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
