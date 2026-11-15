@@ -70,14 +70,14 @@ GO
 -- Note: Replace passwordHash using bcryptjs hash in production deployments.
 MERGE dbo.Users AS target
 USING (VALUES
-  ('u-emp',  'EMP401',  'R. Karthik',        'karthik@sakthiauto.com',   'EMPLOYEE',   'Machine Shop Operations',      'Senior Process Engineer',       'Machine Shop', 'comp-01', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1),
-  ('u-hod',  'HOD201',  'S. Rajeshkumar',    'rajesh@sakthiauto.com',    'HOD',        'Machine Shop Operations',      'Head of Machine Shop',          'Machine Shop', 'comp-01', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1),
-  ('u-hof',  'HOF301',  'K. Natarajan',      'natarajan@sakthiauto.com', 'HOF',        'Foundry Operations (DISA)',    'Head of Foundry (HOF)',         'Foundry',      'comp-02', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1),
-  ('u-cof',  'COF302',  'M. Senthil Kumar',  'senthil@sakthiauto.com',   'COF',        'Tooling, Fixtures & Pattern',  'Chief of Facility (COF)',       'Machine Shop', 'comp-01', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1),
-  ('u-cft',  'CFT101',  'P. Anitha',         'anitha@sakthiauto.com',    'CFT',        'Quality Assurance & Metallurgy', 'CFT Quality Lead',            'Quality',      'comp-01', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1),
-  ('u-cftl', 'CFTL105', 'D. Prabhu',         'prabhu@sakthiauto.com',    'CFT_LEADER', 'Quality Assurance & Metallurgy', 'CFT Leader & APQP Lead',      'Quality',      'comp-01', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1),
-  ('u-ph',   'PH001',   'T. Chandrasekar',   'planthead@sakthiauto.com', 'PLANT_HEAD', 'Corporate & Plant Leadership', 'Vice President & Plant Head',   'Corporate',    'comp-01', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1),
-  ('u-adm',  'ADM001',  'V. Balasubramanian','admin@sakthiauto.com',     'ADMIN',      'Corporate IT & Systems',       'System Administrator',          'Corporate',    'comp-01', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1)
+  ('u-emp',  'EMP401',  'R. Karthik',        'karthik@sakthiauto.com',   'EMPLOYEE',   'Machine Shop Operations',      'Senior Process Engineer',       'Machine Shop', 'comp-01', '$2a$10$bK8VivrhSr.Z9iAiedaWq.JHKL44SZHjyLso1SxrxPNctw3fsU9k.', 1),
+  ('u-hod',  'HOD201',  'S. Rajeshkumar',    'rajesh@sakthiauto.com',    'HOD',        'Machine Shop Operations',      'Head of Machine Shop',          'Machine Shop', 'comp-01', '$2a$10$bK8VivrhSr.Z9iAiedaWq.JHKL44SZHjyLso1SxrxPNctw3fsU9k.', 1),
+  ('u-hof',  'HOF301',  'K. Natarajan',      'natarajan@sakthiauto.com', 'HOF',        'Foundry Operations (DISA)',    'Head of Foundry (HOF)',         'Foundry',      'comp-02', '$2a$10$bK8VivrhSr.Z9iAiedaWq.JHKL44SZHjyLso1SxrxPNctw3fsU9k.', 1),
+  ('u-cof',  'COF302',  'M. Senthil Kumar',  'senthil@sakthiauto.com',   'COF',        'Tooling, Fixtures & Pattern',  'Chief of Facility (COF)',       'Machine Shop', 'comp-01', '$2a$10$bK8VivrhSr.Z9iAiedaWq.JHKL44SZHjyLso1SxrxPNctw3fsU9k.', 1),
+  ('u-cft',  'CFT101',  'P. Anitha',         'anitha@sakthiauto.com',    'CFT',        'Quality Assurance & Metallurgy', 'CFT Quality Lead',            'Quality',      'comp-01', '$2a$10$bK8VivrhSr.Z9iAiedaWq.JHKL44SZHjyLso1SxrxPNctw3fsU9k.', 1),
+  ('u-cftl', 'CFTL105', 'D. Prabhu',         'prabhu@sakthiauto.com',    'CFT_LEADER', 'Quality Assurance & Metallurgy', 'CFT Leader & APQP Lead',      'Quality',      'comp-01', '$2a$10$bK8VivrhSr.Z9iAiedaWq.JHKL44SZHjyLso1SxrxPNctw3fsU9k.', 1),
+  ('u-ph',   'PH001',   'T. Chandrasekar',   'planthead@sakthiauto.com', 'PLANT_HEAD', 'Corporate & Plant Leadership', 'Vice President & Plant Head',   'Corporate',    'comp-01', '$2a$10$bK8VivrhSr.Z9iAiedaWq.JHKL44SZHjyLso1SxrxPNctw3fsU9k.', 1),
+  ('u-adm',  'ADM001',  'V. Balasubramanian','admin@sakthiauto.com',     'ADMIN',      'Corporate IT & Systems',       'System Administrator',          'Corporate',    'comp-01', '$2a$10$bK8VivrhSr.Z9iAiedaWq.JHKL44SZHjyLso1SxrxPNctw3fsU9k.', 1)
 ) AS src (id, employeeId, name, email, role, department, title, facility, companyId, passwordHash, active)
 ON target.id = src.id
 WHEN NOT MATCHED THEN

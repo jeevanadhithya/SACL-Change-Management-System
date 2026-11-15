@@ -148,7 +148,17 @@ exports.createPCRF = async (req, res) => {
         createdBy: body.createdBy || 'R. Karthik',
         createdByEmployeeId: body.createdByEmployeeId || 'EMP101',
         dueDate: body.dueDate || '2027-01-15',
-        workflowJson: JSON.stringify([{ key: 'PCRF', label: 'Process Change Requisition', status: 'IN_PROGRESS' }]),
+        workflowJson: JSON.stringify([
+          { key: 'PCRF', label: 'Process Change Requisition', status: 'IN_PROGRESS' },
+          { key: 'FEASIBILITY', label: 'Feasibility Report', status: 'PENDING' },
+          { key: 'RISK_ANALYSIS', label: 'Risk Analysis', status: 'PENDING' },
+          { key: 'TIMING_PLAN', label: 'Timing Plan', status: 'PENDING' },
+          { key: 'INTERNAL_APPROVAL', label: 'Plant Head / Internal Approval', status: 'PENDING' },
+          { key: 'CHANGE_CHECKLIST', label: 'Change Management Checklist', status: 'PENDING' },
+          { key: 'PTR', label: 'PTR Initiation', status: 'PENDING' },
+          { key: 'PPAP', label: 'PPAP Initiation', status: 'PENDING' },
+          { key: 'CLOSURE', label: 'Final Closure', status: 'PENDING' },
+        ]),
         documentsJson: JSON.stringify([]),
         activityHistoryJson: JSON.stringify([
           {
