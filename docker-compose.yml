@@ -1,6 +1,5 @@
 
 services:
-
   app:
     build:
       context: .
@@ -28,6 +27,14 @@ services:
       - "1433:1433"
     volumes:
       - sacl-sql-data:/var/opt/mssql
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: sacl-cloudflared
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
     restart: unless-stopped
 
 volumes:
