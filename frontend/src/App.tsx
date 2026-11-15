@@ -235,159 +235,161 @@ export default function App() {
 
   return (
     <>
-      <AppShell
-        user={user}
-        activeNav={activeNav}
-        breadcrumbs={currentMeta.crumbs}
-        pageTitle={currentMeta.title}
-        searchQuery={searchQuery}
-        onSearchChange={(q) => {
-          setSearchQuery(q);
-          if (q.trim() && activeNav !== 'pcrfs' && !selectedPcrf) {
-            setActiveNav('pcrfs');
-          }
-        }}
-        onSelectNav={handleSelectNav}
-        onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-        notifications={notifications}
-        onMarkNotificationRead={handleMarkNotificationRead}
-        onMarkAllRead={handleMarkAllRead}
-        onLogout={handleLogout}
-      >
-        {errorBanner && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center justify-between">
-            <span>{errorBanner}</span>
-            <button
-              type="button"
-              onClick={() => setErrorBanner(null)}
-              className="underline cursor-pointer"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {loadingData && pcrfs.length === 0 ? (
-          <div className="bg-white border border-[#E6E6E6] rounded-xl p-8 space-y-4">
-            <div className="h-6 w-48 bg-[#F7F7F7] rounded animate-pulse" />
-            <div className="h-24 w-full bg-[#F7F7F7] rounded animate-pulse" />
-          </div>
-        ) : selectedPcrf ? (
-          <ChangeRequestDetails
-            key={`${selectedPcrf.id}-${detailsInitialTab}`}
-            record={selectedPcrf}
-            user={user}
-            initialTab={detailsInitialTab}
-            onBack={() => setSelectedPcrfId(null)}
-            onSaveForm={handleSaveForm}
-            onDecision={handleDecision}
-            onOpenPrintModal={(formKey) =>
-              setPrintPreview({ pcrfId: selectedPcrf.id, formKey })
-            }
-          />
-        ) : (
-          <>
-            {activeNav === 'dashboard' && (
-              <RoleDashboard
-                user={user}
-                pcrfs={pcrfs}
-                companies={companies}
-                onCreateCompany={user.role === 'ADMIN' ? handleCreateCompany : undefined}
-                onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-                onCreateNew={() => setShowCreateModal(true)}
-                onNavigate={handleSelectNav}
-              />
-            )}
-
-            {activeNav === 'pcrfs' && (
-              <PCRFListPage
-                pcrfs={pcrfs}
-                companies={companies}
-                searchQuery={searchQuery}
-                onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-                onCreateNew={() => setShowCreateModal(true)}
-              />
-            )}
-
-            {activeNav === 'approvals' && (
-              <ApprovalCenter
-                user={user}
-                pcrfs={pcrfs}
-                onOpenPCRF={(id) => handleOpenPCRF(id, 'approval')}
-                onDecision={handleDecision}
-              />
-            )}
-
-            {activeNav === 'forms-hub' && (
-              <ConsultancyFormsHub
-                pcrfs={pcrfs}
-                onOpenPCRFTab={(pcrfId, tab) => handleOpenPCRF(pcrfId, tab)}
-                onPrintForm={(pcrfId, formKey) => setPrintPreview({ pcrfId, formKey })}
-              />
-            )}
-
-            {activeNav === 'tasks' && (
-              <MyTasksPage
-                pcrfs={pcrfs}
-                user={user}
-                onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-              />
-            )}
-
-            {activeNav === 'notifications' && (
-              <NotificationsPage
-                notifications={notifications}
-                onMarkRead={handleMarkNotificationRead}
-                onMarkAllRead={handleMarkAllRead}
-                onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-              />
-            )}
-
-            {activeNav === 'documents' && (
-              <DocumentCenterPage
-                pcrfs={pcrfs}
-                onPrintForm={(pcrfId, formKey) => setPrintPreview({ pcrfId, formKey })}
-              />
-            )}
-
-            {activeNav === 'reports' && <ReportsAnalyticsPage pcrfs={pcrfs} />}
-
-            {activeNav === 'users' && (
-              <UsersRolesPage users={users} onCreateUser={handleCreateUser} />
-            )}
-
-            {activeNav === 'companies' && (
-              <CompaniesPage
-                companies={companies}
-                currentUser={user}
-                onCreateCompany={handleCreateCompany}
-              />
-            )}
-
-            {activeNav === 'departments' && <DepartmentsPage departments={departments} />}
-
-            {activeNav === 'customers-parts' && (
-              <CustomersPartsPage customers={customers} parts={parts} />
-            )}
-
-            {activeNav === 'audit-logs' && <AuditLogsPage auditLogs={auditLogs} />}
-
-            {activeNav === 'settings' && <SettingsPage />}
-          </>
-        )}
-      </AppShell>
-
-      {showCreateModal && (
-        <NewPCRFModal
+      <div className={printRecord && printPreview ? 'no-print' : undefined}>
+        <AppShell
           user={user}
-          companies={companies}
-          departments={departments}
-          customers={customers}
-          parts={parts}
-          onClose={() => setShowCreateModal(false)}
-          onCreate={handleCreatePCRF}
-        />
-      )}
+          activeNav={activeNav}
+          breadcrumbs={currentMeta.crumbs}
+          pageTitle={currentMeta.title}
+          searchQuery={searchQuery}
+          onSearchChange={(q) => {
+            setSearchQuery(q);
+            if (q.trim() && activeNav !== 'pcrfs' && !selectedPcrf) {
+              setActiveNav('pcrfs');
+            }
+          }}
+          onSelectNav={handleSelectNav}
+          onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
+          notifications={notifications}
+          onMarkNotificationRead={handleMarkNotificationRead}
+          onMarkAllRead={handleMarkAllRead}
+          onLogout={handleLogout}
+        >
+          {errorBanner && (
+            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center justify-between">
+              <span>{errorBanner}</span>
+              <button
+                type="button"
+                onClick={() => setErrorBanner(null)}
+                className="underline cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {loadingData && pcrfs.length === 0 ? (
+            <div className="bg-white border border-[#E6E6E6] rounded-xl p-8 space-y-4">
+              <div className="h-6 w-48 bg-[#F7F7F7] rounded animate-pulse" />
+              <div className="h-24 w-full bg-[#F7F7F7] rounded animate-pulse" />
+            </div>
+          ) : selectedPcrf ? (
+            <ChangeRequestDetails
+              key={`${selectedPcrf.id}-${detailsInitialTab}`}
+              record={selectedPcrf}
+              user={user}
+              initialTab={detailsInitialTab}
+              onBack={() => setSelectedPcrfId(null)}
+              onSaveForm={handleSaveForm}
+              onDecision={handleDecision}
+              onOpenPrintModal={(formKey) =>
+                setPrintPreview({ pcrfId: selectedPcrf.id, formKey })
+              }
+            />
+          ) : (
+            <>
+              {activeNav === 'dashboard' && (
+                <RoleDashboard
+                  user={user}
+                  pcrfs={pcrfs}
+                  companies={companies}
+                  onCreateCompany={user.role === 'ADMIN' ? handleCreateCompany : undefined}
+                  onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
+                  onCreateNew={() => setShowCreateModal(true)}
+                  onNavigate={handleSelectNav}
+                />
+              )}
+
+              {activeNav === 'pcrfs' && (
+                <PCRFListPage
+                  pcrfs={pcrfs}
+                  companies={companies}
+                  searchQuery={searchQuery}
+                  onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
+                  onCreateNew={() => setShowCreateModal(true)}
+                />
+              )}
+
+              {activeNav === 'approvals' && (
+                <ApprovalCenter
+                  user={user}
+                  pcrfs={pcrfs}
+                  onOpenPCRF={(id) => handleOpenPCRF(id, 'approval')}
+                  onDecision={handleDecision}
+                />
+              )}
+
+              {activeNav === 'forms-hub' && (
+                <ConsultancyFormsHub
+                  pcrfs={pcrfs}
+                  onOpenPCRFTab={(pcrfId, tab) => handleOpenPCRF(pcrfId, tab)}
+                  onPrintForm={(pcrfId, formKey) => setPrintPreview({ pcrfId, formKey })}
+                />
+              )}
+
+              {activeNav === 'tasks' && (
+                <MyTasksPage
+                  pcrfs={pcrfs}
+                  user={user}
+                  onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
+                />
+              )}
+
+              {activeNav === 'notifications' && (
+                <NotificationsPage
+                  notifications={notifications}
+                  onMarkRead={handleMarkNotificationRead}
+                  onMarkAllRead={handleMarkAllRead}
+                  onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
+                />
+              )}
+
+              {activeNav === 'documents' && (
+                <DocumentCenterPage
+                  pcrfs={pcrfs}
+                  onPrintForm={(pcrfId, formKey) => setPrintPreview({ pcrfId, formKey })}
+                />
+              )}
+
+              {activeNav === 'reports' && <ReportsAnalyticsPage pcrfs={pcrfs} />}
+
+              {activeNav === 'users' && (
+                <UsersRolesPage users={users} onCreateUser={handleCreateUser} />
+              )}
+
+              {activeNav === 'companies' && (
+                <CompaniesPage
+                  companies={companies}
+                  currentUser={user}
+                  onCreateCompany={handleCreateCompany}
+                />
+              )}
+
+              {activeNav === 'departments' && <DepartmentsPage departments={departments} />}
+
+              {activeNav === 'customers-parts' && (
+                <CustomersPartsPage customers={customers} parts={parts} />
+              )}
+
+              {activeNav === 'audit-logs' && <AuditLogsPage auditLogs={auditLogs} />}
+
+              {activeNav === 'settings' && <SettingsPage />}
+            </>
+          )}
+        </AppShell>
+
+        {showCreateModal && (
+          <NewPCRFModal
+            user={user}
+            companies={companies}
+            departments={departments}
+            customers={customers}
+            parts={parts}
+            onClose={() => setShowCreateModal(false)}
+            onCreate={handleCreatePCRF}
+          />
+        )}
+      </div>
 
       {printRecord && printPreview && (
         <OfficialFormPrintModal
