@@ -1,0 +1,8 @@
+{
+  "name": "Sakthi Auto PCMS",
+  "description": "Sakthi Auto Component Limited — Enterprise Project Change Management System with interconnected consultancy forms, role-based approval workflows, APQP Timing Plan Gantt, and official printable formats.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
