@@ -8,6 +8,7 @@ interface PCRFListPageProps {
   pcrfs: ChangeRequestRecord[];
   companies?: CompanyRecord[];
   searchQuery: string;
+  canCreatePCRF?: boolean;
   onOpenPCRF: (id: string) => void;
   onCreateNew: () => void;
 }
@@ -16,6 +17,7 @@ export function PCRFListPage({
   pcrfs,
   companies = [],
   searchQuery,
+  canCreatePCRF = true,
   onOpenPCRF,
   onCreateNew,
 }: PCRFListPageProps) {
@@ -48,14 +50,16 @@ export function PCRFListPage({
             Select any PCRF to fill or inspect all 7 interconnected Sakthi Auto consultancy forms.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onCreateNew}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-sm font-bold whitespace-nowrap shrink-0 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create New Change Request</span>
-        </button>
+        {canCreatePCRF && (
+          <button
+            type="button"
+            onClick={onCreateNew}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-sm font-bold whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New Change Request</span>
+          </button>
+        )}
       </div>
 
       {/* Filter Bar */}

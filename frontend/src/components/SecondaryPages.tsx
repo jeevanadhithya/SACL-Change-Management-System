@@ -3,11 +3,19 @@ import {
   Bell,
   Building2,
   Check,
+  Eye,
+  EyeOff,
   FileText,
+  KeyRound,
   Plus,
   Printer,
+  ShieldCheck,
   UserPlus,
 } from 'lucide-react';
+import type {
+  CreateCompanyAccountPayload,
+  CreateCompanyPayload,
+} from '../api/client';
 import type {
   AuditLogItem,
   ChangeRequestRecord,
@@ -407,115 +415,263 @@ export function ReportsAnalyticsPage({ pcrfs }: { pcrfs: ChangeRequestRecord[] }
 
 export function UsersRolesPage({
   users,
+  companies,
   onCreateUser,
 }: {
   users: UserAccount[];
-  onCreateUser: (payload: Partial<UserAccount>) => Promise<void>;
+  companies: CompanyRecord[];
+  onCreateUser: (payload: Partial<UserAccount> & { password?: string }) => Promise<void>;
 }) {
-  const [empId, setEmpId] = useState('');
+  const [companyId, setCompanyId] = useState(companies[0]?.id || '');
+  const [username, setUsername] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<UserRole>('EMPLOYEE');
   const [dept, setDept] = useState('Machine Shop');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!empId.trim() || !name.trim()) return;
-    await onCreateUser({ employeeId: empId, name, role, department: dept });
-    setEmpId('');
-    setName('');
+    if (!username.trim() || !name.trim() || !password.trim()) {
+      setError('Username / Employee ID, Full Name, and Password are required.');
+      return;
+    }
+    if (password.trim().length < 4) {
+      setError('Password must be at least 4 characters long.');
+      return;
+    }
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+    try {
+      await onCreateUser({
+        employeeId: username.trim(),
+        username: username.trim(),
+        name: name.trim(),
+        email: email.trim() || undefined,
+        password: password.trim(),
+        role,
+        department: dept.trim() || 'Machine Shop',
+        companyId: companyId || null,
+      });
+      setSuccess(`Created account "${username.trim()}" (${RoleDisplayLabel(role)}) with JWT access.`);
+      setUsername('');
+      setName('');
+      setEmail('');
+      setPassword('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to create account');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-[#151515]">Users &amp; Role Permissions</h2>
+        <h2 className="text-xl font-bold text-[#151515]">Users &amp; JWT Role Permissions</h2>
         <p className="text-sm text-[#666666]">
-          Manage Sakthi Auto user accounts across all 8 authorized enterprise roles.
+          Provision individual login accounts with custom usernames, passwords, company assignments, and JWT role permissions.
         </p>
       </div>
 
       <form
         onSubmit={handleAdd}
-        className="bg-white border border-[#E6E6E6] rounded-xl p-4 grid grid-cols-1 sm:grid-cols-5 gap-3 items-end"
+        className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4"
       >
-        <div>
-          <label className="block text-xs font-semibold text-[#666666] mb-1">Employee ID</label>
-          <input
-            type="text"
-            value={empId}
-            onChange={(e) => setEmpId(e.target.value)}
-            placeholder="EMP505"
-            className="w-full px-3 py-2 text-xs font-mono border border-[#E6E6E6] rounded-lg"
-          />
+        <div className="flex items-center gap-2 pb-3 border-b border-[#E6E6E6]">
+          <UserPlus className="w-4 h-4 text-[#F28C00]" />
+          <h3 className="text-sm font-bold text-[#151515]">Create Individual User / Company Account</h3>
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#666666] mb-1">Full Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Engineer Name"
-            className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg"
-          />
+
+        {error && (
+          <div role="alert" className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div role="status" className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+            {success}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label htmlFor="user-company" className="block text-xs font-semibold text-[#666666] mb-1">
+              Assigned Company / Unit
+            </label>
+            <select
+              id="user-company"
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+              className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg bg-white"
+            >
+              <option value="">All Plants / Corporate</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.code} — {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="user-username" className="block text-xs font-semibold text-[#666666] mb-1">
+              Username / Employee ID *
+            </label>
+            <input
+              id="user-username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g., sacl_unit2_hod"
+              className="w-full px-3 py-2 text-xs font-mono border border-[#E6E6E6] rounded-lg"
+            />
+          </div>
+          <div>
+            <label htmlFor="user-fullname" className="block text-xs font-semibold text-[#666666] mb-1">
+              Full Name *
+            </label>
+            <input
+              id="user-fullname"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Account Holder Name"
+              className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg"
+            />
+          </div>
+          <div>
+            <label htmlFor="user-password" className="block text-xs font-semibold text-[#666666] mb-1">
+              Account Password *
+            </label>
+            <div className="relative flex items-center">
+              <input
+                id="user-password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min 4 characters"
+                className="w-full pl-3 pr-9 py-2 text-xs border border-[#E6E6E6] rounded-lg"
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-2.5 text-neutral-400 hover:text-[#151515] cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label htmlFor="user-role" className="block text-xs font-semibold text-[#666666] mb-1">
+              JWT Access Role
+            </label>
+            <select
+              id="user-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg bg-white"
+            >
+              {(['EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT', 'CFT_LEADER', 'PLANT_HEAD', 'ADMIN'] as const).map((r) => (
+                <option key={r} value={r}>
+                  {RoleDisplayLabel(r)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="user-dept" className="block text-xs font-semibold text-[#666666] mb-1">
+              Department
+            </label>
+            <input
+              id="user-dept"
+              type="text"
+              value={dept}
+              onChange={(e) => setDept(e.target.value)}
+              className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg"
+            />
+          </div>
+          <div>
+            <label htmlFor="user-email" className="block text-xs font-semibold text-[#666666] mb-1">
+              Email (Optional)
+            </label>
+            <input
+              id="user-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="user@sakthiauto.com"
+              className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>{submitting ? 'Creating...' : 'Create Account'}</span>
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#666666] mb-1">Role</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as UserRole)}
-            className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg bg-white"
-          >
-            {(['EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT', 'CFT_LEADER', 'PLANT_HEAD', 'ADMIN'] as const).map((r) => (
-              <option key={r} value={r}>
-                {RoleDisplayLabel(r)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#666666] mb-1">Department</label>
-          <input
-            type="text"
-            value={dept}
-            onChange={(e) => setDept(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg"
-          />
-        </div>
-        <button
-          type="submit"
-          className="inline-flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" /> Add User
-        </button>
       </form>
 
       <div className="bg-white border border-[#E6E6E6] rounded-xl overflow-hidden">
-        <table className="w-full text-left border-collapse text-sm">
-          <thead>
-            <tr className="bg-[#F7F7F7] border-b border-[#E6E6E6] text-[11px] font-bold text-[#666666] uppercase">
-              <th className="py-3 px-4">Employee ID</th>
-              <th className="py-3 px-4">Name</th>
-              <th className="py-3 px-4">Role</th>
-              <th className="py-3 px-4">Department</th>
-              <th className="py-3 px-4">Facility</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#E6E6E6]">
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td className="py-3 px-4 font-mono text-xs font-bold text-[#151515]">
-                  {u.employeeId}
-                </td>
-                <td className="py-3 px-4 font-semibold text-[#151515]">{u.name}</td>
-                <td className="py-3 px-4 text-xs font-bold text-[#E87500]">
-                  {RoleDisplayLabel(u.role)}
-                </td>
-                <td className="py-3 px-4 text-xs text-[#666666]">{u.department}</td>
-                <td className="py-3 px-4 text-xs text-[#666666]">{u.facility}</td>
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-[#F7F7F7] border-b border-[#E6E6E6] text-[11px] font-bold text-[#666666] uppercase">
+                <th className="py-3 px-4">Username / ID</th>
+                <th className="py-3 px-4">Name</th>
+                <th className="py-3 px-4">Company / Unit</th>
+                <th className="py-3 px-4">Role</th>
+                <th className="py-3 px-4">Department</th>
+                <th className="py-3 px-4">Facility</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-[#E6E6E6]">
+              {users.map((u) => {
+                const matchedCompany = u.companyId
+                  ? companies.find((c) => c.id === u.companyId)
+                  : undefined;
+                return (
+                  <tr key={u.id}>
+                    <td className="py-3 px-4 font-mono text-xs font-bold text-[#151515]">
+                      {u.username || u.employeeId}
+                    </td>
+                    <td className="py-3 px-4">
+                      <p className="font-semibold text-[#151515]">{u.name}</p>
+                      <p className="text-[11px] text-[#666666]">{u.email}</p>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-[#151515]">
+                      {matchedCompany ? (
+                        <div>
+                          <span className="font-mono font-bold text-[#E87500]">{matchedCompany.code}</span>
+                          <p className="text-[11px] text-[#666666]">{matchedCompany.name}</p>
+                        </div>
+                      ) : u.companyCode ? (
+                        <span className="font-mono font-bold text-[#E87500]">{u.companyCode}</span>
+                      ) : (
+                        <span className="text-[#666666]">Corporate / All Units</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-bold text-[#E87500]">
+                      {RoleDisplayLabel(u.role)}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-[#666666]">{u.department}</td>
+                    <td className="py-3 px-4 text-xs text-[#666666]">{u.facility}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -523,12 +679,19 @@ export function UsersRolesPage({
 
 export function CompaniesPage({
   companies,
+  users,
   currentUser,
   onCreateCompany,
+  onCreateCompanyAccount,
 }: {
   companies: CompanyRecord[];
+  users: UserAccount[];
   currentUser: UserAccount;
-  onCreateCompany: (payload: Partial<CompanyRecord>) => Promise<void>;
+  onCreateCompany: (payload: CreateCompanyPayload) => Promise<void>;
+  onCreateCompanyAccount: (
+    companyId: string,
+    payload: CreateCompanyAccountPayload,
+  ) => Promise<void>;
 }) {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -537,9 +700,33 @@ export function CompaniesPage({
   const [location, setLocation] = useState('');
   const [gstOrRegNo, setGstOrRegNo] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+
+  // Optional initial individual login account during company registration
+  const [createInitialAcc, setCreateInitialAcc] = useState(true);
+  const [initUsername, setInitUsername] = useState('');
+  const [initFullName, setInitFullName] = useState('');
+  const [initPassword, setInitPassword] = useState('');
+  const [initRole, setInitRole] = useState<UserRole>('HOD');
+  const [showInitPassword, setShowInitPassword] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Dedicated inline panel to create additional individual accounts for any existing company
+  const [selectedCompanyForAccount, setSelectedCompanyForAccount] = useState<CompanyRecord | null>(
+    null,
+  );
+  const [accUsername, setAccUsername] = useState('');
+  const [accFullName, setAccFullName] = useState('');
+  const [accEmail, setAccEmail] = useState('');
+  const [accPassword, setAccPassword] = useState('');
+  const [accRole, setAccRole] = useState<UserRole>('EMPLOYEE');
+  const [accDept, setAccDept] = useState('');
+  const [showAccPassword, setShowAccPassword] = useState(false);
+  const [accSubmitting, setAccSubmitting] = useState(false);
+  const [accError, setAccError] = useState<string | null>(null);
+  const [accSuccess, setAccSuccess] = useState<string | null>(null);
 
   if (currentUser.role !== 'ADMIN') {
     return (
@@ -559,6 +746,19 @@ export function CompaniesPage({
       setError('Company Code, Company Name, and Location are required.');
       return;
     }
+    if (createInitialAcc) {
+      if (!initUsername.trim() || !initFullName.trim() || !initPassword.trim()) {
+        setError(
+          'Individual Company Account Username, Account Holder Name, and Password are required (or uncheck account creation).',
+        );
+        return;
+      }
+      if (initPassword.trim().length < 4) {
+        setError('Account Password must be at least 4 characters long.');
+        return;
+      }
+    }
+
     setError(null);
     setSuccess(null);
     setSubmitting(true);
@@ -571,14 +771,33 @@ export function CompaniesPage({
         location,
         gstOrRegNo,
         contactEmail,
+        ...(createInitialAcc
+          ? {
+              initialAccount: {
+                username: initUsername.trim(),
+                name: initFullName.trim(),
+                email: contactEmail.trim() || undefined,
+                password: initPassword.trim(),
+                role: initRole,
+                department: unitName.trim() || facilityType,
+              },
+            }
+          : {}),
       });
-      setSuccess(`Added ${name.trim()} (${code.trim().toUpperCase()})`);
+      setSuccess(
+        createInitialAcc
+          ? `Added ${name.trim()} (${code.trim().toUpperCase()}) with login account "${initUsername.trim()}" (${RoleDisplayLabel(initRole)}).`
+          : `Added ${name.trim()} (${code.trim().toUpperCase()}).`,
+      );
       setCode('');
       setName('');
       setUnitName('');
       setLocation('');
       setGstOrRegNo('');
       setContactEmail('');
+      setInitUsername('');
+      setInitFullName('');
+      setInitPassword('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to add company');
     } finally {
@@ -586,18 +805,57 @@ export function CompaniesPage({
     }
   }
 
+  async function handleCreateExtraAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedCompanyForAccount) return;
+    if (!accUsername.trim() || !accFullName.trim() || !accPassword.trim()) {
+      setAccError('Username, Account Holder Name, and Password are required.');
+      return;
+    }
+    if (accPassword.trim().length < 4) {
+      setAccError('Password must be at least 4 characters long.');
+      return;
+    }
+    setAccError(null);
+    setAccSuccess(null);
+    setAccSubmitting(true);
+    try {
+      await onCreateCompanyAccount(selectedCompanyForAccount.id, {
+        username: accUsername.trim(),
+        name: accFullName.trim(),
+        email: accEmail.trim() || undefined,
+        password: accPassword.trim(),
+        role: accRole,
+        department: accDept.trim() || selectedCompanyForAccount.unitName,
+      });
+      setAccSuccess(
+        `Created account "${accUsername.trim()}" (${RoleDisplayLabel(accRole)}) for ${selectedCompanyForAccount.code}. They can sign in immediately.`,
+      );
+      setAccUsername('');
+      setAccFullName('');
+      setAccEmail('');
+      setAccPassword('');
+      setAccDept('');
+    } catch (err) {
+      setAccError(err instanceof Error ? err.message : 'Unable to create company account');
+    } finally {
+      setAccSubmitting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-[#151515]">Companies &amp; Manufacturing Units</h2>
+        <h2 className="text-xl font-bold text-[#151515]">Companies &amp; Individual Login Accounts</h2>
         <p className="text-sm text-[#666666]">
-          Register and manage Sakthi Auto plants, machine shops, and group manufacturing companies.
+          Register Sakthi Auto group companies/units and provision individual username &amp; password accounts with JWT role-based access.
         </p>
       </div>
 
+      {/* Add Company + Optional Individual Account Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4"
+        className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-5"
       >
         <div className="flex items-center gap-2 border-b border-[#E6E6E6] pb-3">
           <Building2 className="w-4 h-4 text-[#F28C00]" />
@@ -625,7 +883,7 @@ export function CompaniesPage({
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="SACL-MS2"
+              placeholder="SACL-PUNE"
               className="w-full px-3 py-2 text-xs font-mono border border-[#E6E6E6] rounded-lg"
             />
           </div>
@@ -712,18 +970,263 @@ export function CompaniesPage({
           </div>
         </div>
 
+        {/* Built-in Individual Company Account Provisioning */}
+        <div className="rounded-xl border border-[#E6E6E6] bg-[#FAFAFA] p-4 space-y-3">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={createInitialAcc}
+              onChange={(e) => setCreateInitialAcc(e.target.checked)}
+              className="w-4 h-4 accent-[#F28C00] cursor-pointer"
+            />
+            <KeyRound className="w-4 h-4 text-[#F28C00]" />
+            <span className="text-xs font-bold text-[#151515]">
+              Create Individual Login Account (Username &amp; Password) for this Company
+            </span>
+          </label>
+
+          {createInitialAcc && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+              <div>
+                <label htmlFor="comp-acc-username" className="block text-xs font-semibold text-[#666666] mb-1">
+                  Account Username *
+                </label>
+                <input
+                  id="comp-acc-username"
+                  type="text"
+                  value={initUsername}
+                  onChange={(e) => setInitUsername(e.target.value)}
+                  placeholder="e.g., pune_hod"
+                  className="w-full px-3 py-2 text-xs font-mono bg-white border border-[#E6E6E6] rounded-lg"
+                />
+              </div>
+              <div>
+                <label htmlFor="comp-acc-name" className="block text-xs font-semibold text-[#666666] mb-1">
+                  Account Holder Name *
+                </label>
+                <input
+                  id="comp-acc-name"
+                  type="text"
+                  value={initFullName}
+                  onChange={(e) => setInitFullName(e.target.value)}
+                  placeholder="e.g., R. Sundaram"
+                  className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                />
+              </div>
+              <div>
+                <label htmlFor="comp-acc-password" className="block text-xs font-semibold text-[#666666] mb-1">
+                  Password *
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    id="comp-acc-password"
+                    type={showInitPassword ? 'text' : 'password'}
+                    value={initPassword}
+                    onChange={(e) => setInitPassword(e.target.value)}
+                    placeholder="Set login password"
+                    className="w-full pl-3 pr-9 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showInitPassword ? 'Hide initial password' : 'Show initial password'}
+                    onClick={() => setShowInitPassword((prev) => !prev)}
+                    className="absolute right-2.5 text-neutral-400 hover:text-[#151515] cursor-pointer"
+                  >
+                    {showInitPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="comp-acc-role" className="block text-xs font-semibold text-[#666666] mb-1">
+                  JWT Role Access
+                </label>
+                <select
+                  id="comp-acc-role"
+                  value={initRole}
+                  onChange={(e) => setInitRole(e.target.value as UserRole)}
+                  className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                >
+                  {(['EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT', 'CFT_LEADER', 'PLANT_HEAD', 'ADMIN'] as const).map(
+                    (r) => (
+                      <option key={r} value={r}>
+                        {RoleDisplayLabel(r)}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-1.5 py-2 px-4 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold whitespace-nowrap cursor-pointer disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 py-2.5 px-5 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold whitespace-nowrap cursor-pointer disabled:opacity-60"
           >
             <Plus className="w-4 h-4" />
-            <span>{submitting ? 'Adding...' : 'Add Company'}</span>
+            <span>
+              {submitting
+                ? 'Saving...'
+                : createInitialAcc
+                ? 'Add Company & Create Account'
+                : 'Add Company'}
+            </span>
           </button>
         </div>
       </form>
 
+      {/* Inline Dedicated Panel: Add Individual Account for an Existing Added Company */}
+      {selectedCompanyForAccount && (
+        <form
+          onSubmit={handleCreateExtraAccount}
+          className="bg-white border-2 border-[#F28C00] rounded-xl p-5 space-y-4 shadow-sm"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#E6E6E6]">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#F28C00]" />
+              <h3 className="text-sm font-bold text-[#151515]">
+                Create Individual Account for{' '}
+                <span className="font-mono text-[#E87500]">{selectedCompanyForAccount.code}</span> —{' '}
+                {selectedCompanyForAccount.name}
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCompanyForAccount(null);
+                setAccError(null);
+                setAccSuccess(null);
+              }}
+              className="text-xs font-semibold text-[#666666] hover:text-[#151515] cursor-pointer"
+            >
+              Close Panel
+            </button>
+          </div>
+
+          {accError && (
+            <div role="alert" className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+              {accError}
+            </div>
+          )}
+          {accSuccess && (
+            <div role="status" className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+              {accSuccess}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label htmlFor="extra-acc-username" className="block text-xs font-semibold text-[#666666] mb-1">
+                Username *
+              </label>
+              <input
+                id="extra-acc-username"
+                type="text"
+                value={accUsername}
+                onChange={(e) => setAccUsername(e.target.value)}
+                placeholder="e.g., sacl_msh_eng"
+                className="w-full px-3 py-2 text-xs font-mono border border-[#E6E6E6] rounded-lg"
+              />
+            </div>
+            <div>
+              <label htmlFor="extra-acc-name" className="block text-xs font-semibold text-[#666666] mb-1">
+                Account Holder Name *
+              </label>
+              <input
+                id="extra-acc-name"
+                type="text"
+                value={accFullName}
+                onChange={(e) => setAccFullName(e.target.value)}
+                placeholder="Full Name"
+                className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg"
+              />
+            </div>
+            <div>
+              <label htmlFor="extra-acc-password" className="block text-xs font-semibold text-[#666666] mb-1">
+                Password *
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  id="extra-acc-password"
+                  type={showAccPassword ? 'text' : 'password'}
+                  value={accPassword}
+                  onChange={(e) => setAccPassword(e.target.value)}
+                  placeholder="Min 4 characters"
+                  className="w-full pl-3 pr-9 py-2 text-xs border border-[#E6E6E6] rounded-lg"
+                />
+                <button
+                  type="button"
+                  aria-label={showAccPassword ? 'Hide account password' : 'Show account password'}
+                  onClick={() => setShowAccPassword((prev) => !prev)}
+                  className="absolute right-2.5 text-neutral-400 hover:text-[#151515] cursor-pointer"
+                >
+                  {showAccPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="extra-acc-role" className="block text-xs font-semibold text-[#666666] mb-1">
+                JWT Access Role
+              </label>
+              <select
+                id="extra-acc-role"
+                value={accRole}
+                onChange={(e) => setAccRole(e.target.value as UserRole)}
+                className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg bg-white"
+              >
+                {(['EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT', 'CFT_LEADER', 'PLANT_HEAD', 'ADMIN'] as const).map(
+                  (r) => (
+                    <option key={r} value={r}>
+                      {RoleDisplayLabel(r)}
+                    </option>
+                  ),
+                )}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="extra-acc-dept" className="block text-xs font-semibold text-[#666666] mb-1">
+                Department
+              </label>
+              <input
+                id="extra-acc-dept"
+                type="text"
+                value={accDept}
+                onChange={(e) => setAccDept(e.target.value)}
+                placeholder={selectedCompanyForAccount.unitName}
+                className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg"
+              />
+            </div>
+            <div>
+              <label htmlFor="extra-acc-email" className="block text-xs font-semibold text-[#666666] mb-1">
+                Email (Optional)
+              </label>
+              <input
+                id="extra-acc-email"
+                type="email"
+                value={accEmail}
+                onChange={(e) => setAccEmail(e.target.value)}
+                placeholder="user@company.com"
+                className="w-full px-3 py-2 text-xs border border-[#E6E6E6] rounded-lg"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="submit"
+              disabled={accSubmitting}
+              className="inline-flex items-center gap-1.5 py-2 px-4 rounded-lg bg-[#151515] hover:bg-[#242424] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>{accSubmitting ? 'Creating...' : 'Create Company Account'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Registered Companies & Linked Accounts Table */}
       <div className="bg-white border border-[#E6E6E6] rounded-xl overflow-hidden">
         <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse text-sm">
@@ -733,30 +1236,60 @@ export function CompaniesPage({
                 <th className="py-3 px-4">Company &amp; Unit</th>
                 <th className="py-3 px-4">Facility Type</th>
                 <th className="py-3 px-4">Location</th>
-                <th className="py-3 px-4">GST / Reg No.</th>
-                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Linked Accounts</th>
+                <th className="py-3 px-4 text-right">Account Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E6E6E6]">
-              {companies.map((c) => (
-                <tr key={c.id}>
-                  <td className="py-3 px-4 font-mono text-xs font-bold text-[#E87500] whitespace-nowrap">
-                    {c.code}
-                  </td>
-                  <td className="py-3 px-4">
-                    <p className="font-semibold text-[#151515]">{c.name}</p>
-                    <p className="text-xs text-[#666666]">{c.unitName}</p>
-                  </td>
-                  <td className="py-3 px-4 text-xs font-medium text-[#151515]">{c.facilityType}</td>
-                  <td className="py-3 px-4 text-xs text-[#666666]">{c.location}</td>
-                  <td className="py-3 px-4 font-mono text-xs text-[#666666]">
-                    {c.gstOrRegNo || '—'}
-                  </td>
-                  <td className="py-3 px-4 text-xs font-semibold text-emerald-700">
-                    {c.active ? 'Active' : 'Inactive'}
-                  </td>
-                </tr>
-              ))}
+              {companies.map((c) => {
+                const companyAccounts = users.filter((u) => u.companyId === c.id);
+                return (
+                  <tr key={c.id}>
+                    <td className="py-3 px-4 font-mono text-xs font-bold text-[#E87500] whitespace-nowrap">
+                      {c.code}
+                    </td>
+                    <td className="py-3 px-4">
+                      <p className="font-semibold text-[#151515]">{c.name}</p>
+                      <p className="text-xs text-[#666666]">{c.unitName}</p>
+                    </td>
+                    <td className="py-3 px-4 text-xs font-medium text-[#151515]">{c.facilityType}</td>
+                    <td className="py-3 px-4 text-xs text-[#666666]">{c.location}</td>
+                    <td className="py-3 px-4">
+                      {companyAccounts.length === 0 ? (
+                        <span className="text-xs text-neutral-400">No individual accounts yet</span>
+                      ) : (
+                        <div className="space-y-1">
+                          {companyAccounts.map((acc) => (
+                            <div key={acc.id} className="text-xs flex items-center gap-1.5">
+                              <span className="font-mono font-bold text-[#151515]">
+                                {acc.username || acc.employeeId}
+                              </span>
+                              <span className="text-[11px] text-[#E87500] font-semibold">
+                                ({RoleDisplayLabel(acc.role)})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCompanyForAccount(c);
+                          setAccDept(c.unitName);
+                          setAccError(null);
+                          setAccSuccess(null);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#151515] text-xs font-bold text-[#151515] hover:bg-[#151515] hover:text-white transition-colors cursor-pointer"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Create Account</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

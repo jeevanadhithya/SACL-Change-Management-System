@@ -11,12 +11,16 @@ export type UserRole =
 export interface UserAccount {
   id: string;
   employeeId: string;
+  username?: string;
   name: string;
   email: string;
   role: UserRole;
   department: string;
   title: string;
   facility: 'Foundry' | 'Machine Shop' | 'Corporate' | 'Quality';
+  companyId?: string | null;
+  companyCode?: string | null;
+  companyName?: string | null;
   active: boolean;
   password?: string;
 }

@@ -34,13 +34,35 @@ exports.getMasterData = async (_req, res) => {
   }
 };
 
+const STAGE_APPROVER_ROLES = {
+  PCRF: ['HOD', 'HOF', 'COF', 'ADMIN'],
+  FEASIBILITY: ['CFT', 'CFT_LEADER', 'COF', 'ADMIN'],
+  RISK_ANALYSIS: ['CFT', 'CFT_LEADER', 'ADMIN'],
+  TIMING_PLAN: ['CFT_LEADER', 'COF', 'ADMIN'],
+  INTERNAL_APPROVAL: ['PLANT_HEAD', 'COF', 'ADMIN'],
+  CHANGE_CHECKLIST: ['CFT', 'CFT_LEADER', 'ADMIN'],
+  PTR: ['CFT', 'CFT_LEADER', 'HOD', 'ADMIN'],
+  PPAP: ['CFT_LEADER', 'PLANT_HEAD', 'ADMIN'],
+  CLOSURE: ['PLANT_HEAD', 'ADMIN'],
+};
+
 exports.submitDecision = async (req, res) => {
   try {
     const { id } = req.params;
-    const { decision, actorName, actorRole, comments } = req.body || {};
+    const { decision, comments } = req.body || {};
+    const actorName = req.user?.name || 'Approver';
+    const actorRole = req.user?.role || 'EMPLOYEE';
+
     const existing = await fetchFullPCRF(id);
     if (!existing) {
       return res.status(404).json({ error: 'Change request not found.' });
+    }
+
+    const allowedForStage = STAGE_APPROVER_ROLES[existing.currentStage] || ['ADMIN'];
+    if (!allowedForStage.includes(actorRole)) {
+      return res.status(403).json({
+        error: `Role ${actorRole} is not authorized to approve or reject stage ${existing.currentStage}.`,
+      });
     }
 
     const now = new Date().toISOString().slice(0, 10);

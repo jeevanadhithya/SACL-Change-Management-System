@@ -335,9 +335,14 @@ export function AppShell({
             {!isNarrow && (
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-white truncate">{user.name}</p>
-                <p className="text-[10.5px] text-neutral-400 leading-tight">
-                  {user.employeeId} · {RoleDisplayLabel(user.role)}
+                <p className="text-[10.5px] text-neutral-400 leading-tight truncate">
+                  {user.username || user.employeeId} · {RoleDisplayLabel(user.role)}
                 </p>
+                {user.companyCode && (
+                  <p className="text-[10px] font-mono font-bold text-[#F28C00] truncate mt-0.5">
+                    {user.companyCode}
+                  </p>
+                )}
               </div>
             )}
             {!isNarrow && (
@@ -519,12 +524,19 @@ export function AppShell({
               <HelpCircle className="w-4 h-4" />
             </button>
 
-            {/* Role Indicator */}
+            {/* Role & Company Indicator */}
             <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-[#E6E6E6]">
               <ShieldCheck className="w-4 h-4 text-[#F28C00]" />
-              <span className="text-xs font-bold text-[#151515] whitespace-nowrap">
-                {RoleDisplayLabel(user.role)}
-              </span>
+              <div className="leading-tight">
+                <span className="block text-xs font-bold text-[#151515] whitespace-nowrap">
+                  {RoleDisplayLabel(user.role)}
+                </span>
+                {user.companyCode && (
+                  <span className="block text-[10px] font-mono font-semibold text-[#666666] whitespace-nowrap">
+                    {user.companyCode}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </header>

@@ -42,7 +42,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!employeeId.trim() || !password.trim()) {
-      setError('Please enter both Employee ID and Password.');
+      setError('Please enter both Username / Employee ID and Password.');
       return;
     }
     void performLogin(employeeId, password);
@@ -105,7 +105,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               WELCOME BACK
             </h2>
             <p className="text-xs font-semibold tracking-[0.14em] text-neutral-500 uppercase mt-1.5">
-              SIGN IN TO YOUR ACCOUNT
+              SIGN IN WITH USERNAME OR EMPLOYEE ID
             </p>
           </div>
 
@@ -124,7 +124,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 htmlFor="login-employee-id"
                 className="block text-xs font-bold tracking-[0.08em] text-[#242424] uppercase mb-2"
               >
-                EMPLOYEE ID
+                USERNAME / EMPLOYEE ID
               </label>
               <div className="relative flex items-center">
                 <User
@@ -138,7 +138,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   required
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
-                  placeholder="Enter your Employee ID"
+                  placeholder="Enter Username or Employee ID"
                   autoComplete="username"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-[#E6E6E6] rounded-xl text-sm text-[#151515] placeholder:text-neutral-400 focus:outline-none focus:border-[#F28C00] focus:ring-2 focus:ring-[#F28C00]/20 transition-colors"
                 />

@@ -1,10 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { api } from './api/client';
+import {
+  api,
+  clearAuthSession,
+  getAuthToken,
+  setUnauthorizedHandler,
+  type CreateCompanyAccountPayload,
+  type CreateCompanyPayload,
+} from './api/client';
 import { AppShell, type NavSectionKey } from './components/AppShell';
 import { ApprovalCenter } from './components/ApprovalCenter';
 import { ChangeRequestDetails, type DetailsTabKey } from './components/ChangeRequestDetails';
+import { CreatePCRFPage } from './components/CreatePCRFPage';
 import { LoginPage } from './components/LoginPage';
-import { NewPCRFModal } from './components/NewPCRFModal';
 import { PCRFListPage } from './components/PCRFListPage';
 import { OfficialFormPrintModal } from './components/print/OfficialFormPrintModal';
 import { RoleDashboard } from './components/RoleDashboard';
@@ -31,15 +38,20 @@ import type {
   NotificationItem,
   PartMasterRecord,
   UserAccount,
+  UserRole,
 } from './types/pcms';
 
 const STORAGE_KEY = 'sacl_pcms_user';
 
+const PCRF_CREATOR_ROLES: UserRole[] = ['ADMIN', 'EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT_LEADER'];
+
 export default function App() {
   const [user, setUser] = useState<UserAccount | null>(() => {
     try {
+      const token = getAuthToken();
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? (JSON.parse(saved) as UserAccount) : null;
+      if (!token || !saved) return null;
+      return JSON.parse(saved) as UserAccount;
     } catch {
       return null;
     }
@@ -49,7 +61,6 @@ export default function App() {
   const [selectedPcrfId, setSelectedPcrfId] = useState<string | null>(null);
   const [detailsInitialTab, setDetailsInitialTab] = useState<DetailsTabKey>('overview');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [printPreview, setPrintPreview] = useState<{
     pcrfId: string;
     formKey: FormIdentifier;
@@ -67,9 +78,43 @@ export default function App() {
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const autostartAttemptedRef = useRef(false);
+  const sessionValidatedRef = useRef(false);
 
-  // Support ?autostart=1 for automated testing directly into workspace (initial mount only)
+  const handleLogout = useCallback(() => {
+    clearAuthSession();
+    setUser(null);
+    setSelectedPcrfId(null);
+    setActiveNav('dashboard');
+    setUsers([]);
+    setAuditLogs([]);
+    setPcrfs([]);
+    setErrorBanner(null);
+  }, []);
+
   useEffect(() => {
+    setUnauthorizedHandler(handleLogout);
+    return () => setUnauthorizedHandler(null);
+  }, [handleLogout]);
+
+  // Verify existing JWT with /api/auth/me on mount, or handle ?autostart=1
+  useEffect(() => {
+    if (sessionValidatedRef.current) return;
+    sessionValidatedRef.current = true;
+
+    const token = getAuthToken();
+    if (token) {
+      api
+        .me()
+        .then(({ user: freshUser }) => {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(freshUser));
+          setUser(freshUser);
+        })
+        .catch(() => {
+          handleLogout();
+        });
+      return;
+    }
+
     if (autostartAttemptedRef.current) return;
     autostartAttemptedRef.current = true;
     const params = new URLSearchParams(window.location.search);
@@ -82,19 +127,22 @@ export default function App() {
         })
         .catch(() => {});
     }
-  }, [user]);
+  }, [user, handleLogout]);
 
   const loadWorkspaceData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !getAuthToken()) return;
     setLoadingData(true);
     setErrorBanner(null);
     try {
+      const canLoadUsers = user.role === 'ADMIN';
+      const canLoadAudits = user.role === 'ADMIN' || user.role === 'PLANT_HEAD';
+
       const [pcrfRes, notifRes, masterRes, usersRes, auditRes] = await Promise.all([
         api.getPCRFs(),
         api.getNotifications(),
         api.getMasterData(),
-        api.getUsers(),
-        api.getAuditLogs(),
+        canLoadUsers ? api.getUsers() : Promise.resolve({ users: [] as UserAccount[] }),
+        canLoadAudits ? api.getAuditLogs() : Promise.resolve({ auditLogs: [] as AuditLogItem[] }),
       ]);
       setPcrfs(pcrfRes.pcrfs);
       setNotifications(notifRes.notifications);
@@ -122,19 +170,14 @@ export default function App() {
     setSelectedPcrfId(null);
   }
 
-  function handleLogout() {
-    localStorage.removeItem(STORAGE_KEY);
-    setUser(null);
-    setSelectedPcrfId(null);
-  }
-
   function handleSelectNav(nav: NavSectionKey) {
-    if (nav === 'create-pcrf') {
-      setShowCreateModal(true);
-      return;
-    }
     setSelectedPcrfId(null);
     setActiveNav(nav);
+  }
+
+  function handleOpenCreatePCRF() {
+    setSelectedPcrfId(null);
+    setActiveNav('create-pcrf');
   }
 
   function handleOpenPCRF(pcrfId: string, tab: DetailsTabKey = 'overview') {
@@ -146,6 +189,7 @@ export default function App() {
     const { pcrf } = await api.createPCRF(payload);
     setPcrfs((prev) => [pcrf, ...prev]);
     await loadWorkspaceData();
+    setActiveNav('pcrfs');
     handleOpenPCRF(pcrf.id, 'form1');
   }
 
@@ -186,14 +230,25 @@ export default function App() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
-  async function handleCreateUser(payload: Partial<UserAccount>) {
+  async function handleCreateUser(payload: Partial<UserAccount> & { password?: string }) {
     const { user: created } = await api.createUser(payload);
     setUsers((prev) => [...prev, created]);
   }
 
-  async function handleCreateCompany(payload: Partial<CompanyRecord>) {
-    const { company } = await api.createCompany(payload);
+  async function handleCreateCompany(payload: CreateCompanyPayload) {
+    const { company, account } = await api.createCompany(payload);
     setCompanies((prev) => [company, ...prev]);
+    if (account) {
+      setUsers((prev) => [...prev, account]);
+    }
+  }
+
+  async function handleCreateCompanyAccount(
+    companyId: string,
+    payload: CreateCompanyAccountPayload,
+  ) {
+    const { user: created } = await api.createCompanyAccount(companyId, payload);
+    setUsers((prev) => [...prev, created]);
   }
 
   if (!user) {
@@ -207,6 +262,8 @@ export default function App() {
   const printRecord = printPreview
     ? pcrfs.find((p) => p.id === printPreview.pcrfId) || null
     : null;
+
+  const canCreatePCRF = PCRF_CREATOR_ROLES.includes(user.role);
 
   const navMeta: Record<NavSectionKey, { title: string; crumbs: string[] }> = {
     dashboard: { title: 'Dashboard', crumbs: ['Sakthi Auto Component Limited', 'Dashboard'] },
@@ -293,9 +350,10 @@ export default function App() {
                   user={user}
                   pcrfs={pcrfs}
                   companies={companies}
+                  canCreatePCRF={canCreatePCRF}
                   onCreateCompany={user.role === 'ADMIN' ? handleCreateCompany : undefined}
                   onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-                  onCreateNew={() => setShowCreateModal(true)}
+                  onCreateNew={handleOpenCreatePCRF}
                   onNavigate={handleSelectNav}
                 />
               )}
@@ -305,10 +363,31 @@ export default function App() {
                   pcrfs={pcrfs}
                   companies={companies}
                   searchQuery={searchQuery}
+                  canCreatePCRF={canCreatePCRF}
                   onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-                  onCreateNew={() => setShowCreateModal(true)}
+                  onCreateNew={handleOpenCreatePCRF}
                 />
               )}
+
+              {activeNav === 'create-pcrf' &&
+                (canCreatePCRF ? (
+                  <CreatePCRFPage
+                    user={user}
+                    companies={companies}
+                    departments={departments}
+                    customers={customers}
+                    parts={parts}
+                    onCancel={() => setActiveNav('pcrfs')}
+                    onCreate={handleCreatePCRF}
+                  />
+                ) : (
+                  <div className="bg-white border border-[#E6E6E6] rounded-xl p-8 text-center space-y-2">
+                    <h2 className="text-lg font-bold text-[#151515]">Role Permission Required</h2>
+                    <p className="text-sm text-[#666666]">
+                      Your current role ({user.role}) does not have permission to initiate new PCRFs.
+                    </p>
+                  </div>
+                ))}
 
               {activeNav === 'approvals' && (
                 <ApprovalCenter
@@ -353,15 +432,21 @@ export default function App() {
 
               {activeNav === 'reports' && <ReportsAnalyticsPage pcrfs={pcrfs} />}
 
-              {activeNav === 'users' && (
-                <UsersRolesPage users={users} onCreateUser={handleCreateUser} />
+              {activeNav === 'users' && user.role === 'ADMIN' && (
+                <UsersRolesPage
+                  users={users}
+                  companies={companies}
+                  onCreateUser={handleCreateUser}
+                />
               )}
 
               {activeNav === 'companies' && (
                 <CompaniesPage
                   companies={companies}
+                  users={users}
                   currentUser={user}
                   onCreateCompany={handleCreateCompany}
+                  onCreateCompanyAccount={handleCreateCompanyAccount}
                 />
               )}
 
@@ -371,24 +456,15 @@ export default function App() {
                 <CustomersPartsPage customers={customers} parts={parts} />
               )}
 
-              {activeNav === 'audit-logs' && <AuditLogsPage auditLogs={auditLogs} />}
+              {activeNav === 'audit-logs' &&
+                (user.role === 'ADMIN' || user.role === 'PLANT_HEAD') && (
+                  <AuditLogsPage auditLogs={auditLogs} />
+                )}
 
-              {activeNav === 'settings' && <SettingsPage />}
+              {activeNav === 'settings' && user.role === 'ADMIN' && <SettingsPage />}
             </>
           )}
         </AppShell>
-
-        {showCreateModal && (
-          <NewPCRFModal
-            user={user}
-            companies={companies}
-            departments={departments}
-            customers={customers}
-            parts={parts}
-            onClose={() => setShowCreateModal(false)}
-            onCreate={handleCreatePCRF}
-          />
-        )}
       </div>
 
       {printRecord && printPreview && (

@@ -22,29 +22,36 @@ router.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'sakthi-auto-mssql-backend' });
 });
 
-// Authentication & Users
+// Authentication & Users (Strict JWT RBAC)
 router.post('/auth/login', authController.login);
-router.get('/users', verifyToken, authController.getUsers);
-router.post('/users', verifyToken, authController.createUser);
+router.get('/auth/me', verifyToken, authController.me);
+router.get('/users', verifyToken, requireRole('ADMIN'), authController.getUsers);
+router.post('/users', verifyToken, requireRole('ADMIN'), authController.createUser);
 
-// Companies (Multi-Plant / Unit CRUD — Admin Dashboard Only for mutations)
+// Companies & Individual Company Login Accounts (Admin Only for mutations)
 router.get('/companies', verifyToken, companyController.getCompanies);
 router.post('/companies', verifyToken, requireRole('ADMIN'), companyController.createCompany);
 router.put('/companies/:id', verifyToken, requireRole('ADMIN'), companyController.updateCompany);
+router.post('/companies/:id/accounts', verifyToken, requireRole('ADMIN'), companyController.createCompanyAccount);
 
 // Departments, Customers & Parts Master Data
 router.get('/master-data', verifyToken, workflowController.getMasterData);
 router.get('/departments', verifyToken, departmentController.getDepartments);
-router.post('/departments', verifyToken, departmentController.createDepartment);
+router.post('/departments', verifyToken, requireRole('ADMIN', 'COF', 'PLANT_HEAD'), departmentController.createDepartment);
 router.get('/customers', verifyToken, customerPartController.getCustomers);
-router.post('/customers', verifyToken, customerPartController.createCustomer);
+router.post('/customers', verifyToken, requireRole('ADMIN', 'CFT_LEADER', 'COF'), customerPartController.createCustomer);
 router.get('/parts', verifyToken, customerPartController.getParts);
-router.post('/parts', verifyToken, customerPartController.createPart);
+router.post('/parts', verifyToken, requireRole('ADMIN', 'CFT_LEADER', 'COF'), customerPartController.createPart);
 
 // Change Requests & Exact PDF Full-Form Controllers (Forms 1 to 7)
 router.get('/pcrfs', verifyToken, processChangeRequisitionFormController.listPCRFs);
 router.get('/pcrfs/:id', verifyToken, processChangeRequisitionFormController.getPCRFById);
-router.post('/pcrfs', verifyToken, processChangeRequisitionFormController.createPCRF);
+router.post(
+  '/pcrfs',
+  verifyToken,
+  requireRole('ADMIN', 'EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT_LEADER'),
+  processChangeRequisitionFormController.createPCRF,
+);
 
 // Form 1: QF/07/MRO-15 Process Change Requisition Form
 router.get('/pcrfs/:id/process-change-requisition-form', verifyToken, processChangeRequisitionFormController.getPCRFById);
@@ -104,6 +111,6 @@ router.get('/analytics', verifyToken, workflowController.getAnalyticsSummary);
 router.get('/notifications', verifyToken, notificationController.getNotifications);
 router.post('/notifications/:id/read', verifyToken, notificationController.markNotificationRead);
 router.post('/notifications/read-all', verifyToken, notificationController.markAllNotificationsRead);
-router.get('/audit-logs', verifyToken, auditLogController.getAuditLogs);
+router.get('/audit-logs', verifyToken, requireRole('ADMIN', 'PLANT_HEAD'), auditLogController.getAuditLogs);
 
 module.exports = router;

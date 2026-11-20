@@ -5,11 +5,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_2026';
 function signToken(user) {
   return jwt.sign(
     {
+      sub: user.id,
       id: user.id,
       employeeId: user.employeeId,
+      username: user.username || user.employeeId,
       name: user.name,
       role: user.role,
       department: user.department,
+      companyId: user.companyId || null,
+      companyCode: user.companyCode || null,
+      companyName: user.companyName || null,
     },
     JWT_SECRET,
     { expiresIn: '12h' },
@@ -18,7 +23,7 @@ function signToken(user) {
 
 function verifyToken(req, res, next) {
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
   if (!token) {
     return res.status(401).json({ error: 'Authentication token is required.' });
   }
@@ -35,7 +40,7 @@ function requireRole(...allowedRoles) {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized.' });
     }
-    if (req.user.role === 'ADMIN' || allowedRoles.includes(req.user.role)) {
+    if (allowedRoles.includes(req.user.role)) {
       return next();
     }
     return res.status(403).json({

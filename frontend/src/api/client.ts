@@ -15,6 +15,8 @@ import type {
 const TOKEN_STORAGE_KEY = 'sacl_pcms_token';
 const USER_STORAGE_KEY = 'sacl_pcms_user';
 
+let unauthorizedHandler: (() => void) | null = null;
+
 const FORM_ROUTE_MAP: Record<FormIdentifier, string> = {
   form1: 'process-change-requisition-form',
   form2: 'feasibility-report-for-change-request',
@@ -25,6 +27,14 @@ const FORM_ROUTE_MAP: Record<FormIdentifier, string> = {
   form7: 'ppap-initiation-form-cum-production-report',
 };
 
+export function setUnauthorizedHandler(fn: (() => void) | null) {
+  unauthorizedHandler = fn;
+}
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
 export function setAuthToken(token: string | null) {
   if (token) {
     localStorage.setItem(TOKEN_STORAGE_KEY, token);
@@ -33,24 +43,30 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+export function clearAuthSession() {
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  localStorage.removeItem(USER_STORAGE_KEY);
+}
+
+export interface CreateCompanyAccountPayload {
+  username: string;
+  name: string;
+  email?: string;
+  password: string;
+  role: UserRole;
+  department?: string;
+  title?: string;
+}
+
+export interface CreateCompanyPayload extends Partial<CompanyRecord> {
+  initialAccount?: CreateCompanyAccountPayload;
+}
+
 async function apiJson<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-  let actorRoleHeader: Record<string, string> = {};
-  try {
-    const savedUser = localStorage.getItem(USER_STORAGE_KEY);
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser) as { role?: string };
-      if (parsed.role) {
-        actorRoleHeader = { 'x-user-role': parsed.role };
-      }
-    }
-  } catch {
-    // ignore malformed storage
-  }
+  const token = getAuthToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...actorRoleHeader,
   };
 
   const res = await fetch(buildApiUrl(path), {
@@ -62,6 +78,12 @@ async function apiJson<T>(path: string, options?: RequestInit): Promise<T> {
   });
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 401 && path !== '/api/auth/login') {
+      clearAuthSession();
+      if (unauthorizedHandler) {
+        unauthorizedHandler();
+      }
+    }
     throw new Error(payload.error || `Request failed (${res.status})`);
   }
   return payload as T;
@@ -71,17 +93,20 @@ export const api = {
   async login(employeeId: string, password: string) {
     const res = await apiJson<{ user: UserAccount; token?: string }>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ employeeId, password }),
+      body: JSON.stringify({ employeeId, username: employeeId, password }),
     });
     if (res.token) {
       setAuthToken(res.token);
     }
     return res;
   },
+  me() {
+    return apiJson<{ user: UserAccount }>('/api/auth/me');
+  },
   getUsers() {
     return apiJson<{ users: UserAccount[] }>('/api/users');
   },
-  createUser(payload: Partial<UserAccount>) {
+  createUser(payload: Partial<UserAccount> & { password?: string }) {
     return apiJson<{ user: UserAccount }>('/api/users', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -90,8 +115,14 @@ export const api = {
   getCompanies() {
     return apiJson<{ companies: CompanyRecord[] }>('/api/companies');
   },
-  createCompany(payload: Partial<CompanyRecord>) {
-    return apiJson<{ company: CompanyRecord }>('/api/companies', {
+  createCompany(payload: CreateCompanyPayload) {
+    return apiJson<{ company: CompanyRecord; account?: UserAccount | null }>('/api/companies', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  createCompanyAccount(companyId: string, payload: CreateCompanyAccountPayload) {
+    return apiJson<{ user: UserAccount }>(`/api/companies/${companyId}/accounts`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });

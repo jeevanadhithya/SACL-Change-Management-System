@@ -10,7 +10,8 @@ import {
   Layers,
   Plus,
 } from 'lucide-react';
-import type { ChangeRequestRecord, CompanyRecord, UserAccount } from '../types/pcms';
+import type { ChangeRequestRecord, CompanyRecord, UserAccount, UserRole } from '../types/pcms';
+import type { CreateCompanyPayload } from '../api/client';
 import { canUserApproveStage, WORKFLOW_STAGE_ORDER } from '../utils/workflow';
 import { RoleDisplayLabel, StatusText } from './ui/StatusBadge';
 import type { NavSectionKey } from './AppShell';
@@ -19,7 +20,8 @@ interface RoleDashboardProps {
   user: UserAccount;
   pcrfs: ChangeRequestRecord[];
   companies?: CompanyRecord[];
-  onCreateCompany?: (payload: Partial<CompanyRecord>) => Promise<void>;
+  canCreatePCRF?: boolean;
+  onCreateCompany?: (payload: CreateCompanyPayload) => Promise<void>;
   onOpenPCRF: (id: string) => void;
   onCreateNew: () => void;
   onNavigate: (nav: NavSectionKey) => void;
@@ -29,6 +31,7 @@ export function RoleDashboard({
   user,
   pcrfs,
   companies = [],
+  canCreatePCRF = true,
   onCreateCompany,
   onOpenPCRF,
   onCreateNew,
@@ -42,6 +45,11 @@ export function RoleDashboard({
   const [location, setLocation] = useState('');
   const [gstOrRegNo, setGstOrRegNo] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [createInitialAccount, setCreateInitialAccount] = useState(true);
+  const [accUsername, setAccUsername] = useState('');
+  const [accFullName, setAccFullName] = useState('');
+  const [accPassword, setAccPassword] = useState('');
+  const [accRole, setAccRole] = useState<UserRole>('HOD');
   const [companySubmitting, setCompanySubmitting] = useState(false);
   const [companyError, setCompanyError] = useState<string | null>(null);
   const [companySuccess, setCompanySuccess] = useState<string | null>(null);
@@ -122,6 +130,14 @@ export function RoleDashboard({
       setCompanyError('Company Code, Company Name, and Plant Location are required.');
       return;
     }
+    if (createInitialAccount) {
+      if (!accUsername.trim() || !accFullName.trim() || accPassword.trim().length < 6) {
+        setCompanyError(
+          'Individual company account requires Username, Full Name, and Password (min 6 characters).',
+        );
+        return;
+      }
+    }
     setCompanyError(null);
     setCompanySuccess(null);
     setCompanySubmitting(true);
@@ -134,14 +150,32 @@ export function RoleDashboard({
         location,
         gstOrRegNo,
         contactEmail,
+        ...(createInitialAccount
+          ? {
+              initialAccount: {
+                username: accUsername.trim(),
+                name: accFullName.trim(),
+                password: accPassword,
+                role: accRole,
+                email: contactEmail.trim() || undefined,
+              },
+            }
+          : {}),
       });
-      setCompanySuccess(`Added ${name.trim()} (${code.trim().toUpperCase()})`);
+      setCompanySuccess(
+        createInitialAccount
+          ? `Added ${name.trim()} (${code.trim().toUpperCase()}) with login account "${accUsername.trim()}" (${accRole})`
+          : `Added ${name.trim()} (${code.trim().toUpperCase()})`,
+      );
       setCode('');
       setName('');
       setUnitName('');
       setLocation('');
       setGstOrRegNo('');
       setContactEmail('');
+      setAccUsername('');
+      setAccFullName('');
+      setAccPassword('');
       setShowAddCompany(false);
     } catch (err) {
       setCompanyError(err instanceof Error ? err.message : 'Unable to add company');
@@ -172,14 +206,16 @@ export function RoleDashboard({
               Approval Center ({pendingApproval})
             </button>
           )}
-          <button
-            type="button"
-            onClick={onCreateNew}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold whitespace-nowrap cursor-pointer shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New Change Request</span>
-          </button>
+          {canCreatePCRF && (
+            <button
+              type="button"
+              onClick={onCreateNew}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold whitespace-nowrap cursor-pointer shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create New Change Request</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -240,21 +276,39 @@ export function RoleDashboard({
 
       {/* Guided Quick-Action Workflow Strip */}
       <div className="bg-white border border-[#E6E6E6] rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-        <button
-          type="button"
-          onClick={onCreateNew}
-          className="text-left p-3.5 rounded-lg border border-[#E6E6E6] hover:border-[#F28C00] hover:bg-[#FFF4E5]/25 transition-colors cursor-pointer group"
-        >
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#E87500]">
-            Step 1 · Initiate
-          </p>
-          <p className="text-sm font-bold text-[#151515] mt-0.5 group-hover:text-[#E87500] transition-colors">
-            Raise New Change Request →
-          </p>
-          <p className="text-xs text-[#666666] mt-0.5">
-            Select plant unit, 4M classification &amp; part details (QF/07/MRO-15).
-          </p>
-        </button>
+        {canCreatePCRF ? (
+          <button
+            type="button"
+            onClick={onCreateNew}
+            className="text-left p-3.5 rounded-lg border border-[#E6E6E6] hover:border-[#F28C00] hover:bg-[#FFF4E5]/25 transition-colors cursor-pointer group"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[#E87500]">
+              Step 1 · Initiate
+            </p>
+            <p className="text-sm font-bold text-[#151515] mt-0.5 group-hover:text-[#E87500] transition-colors">
+              Raise New Change Request →
+            </p>
+            <p className="text-xs text-[#666666] mt-0.5">
+              Select plant unit, 4M classification &amp; part details (QF/07/MRO-15).
+            </p>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onNavigate('pcrfs')}
+            className="text-left p-3.5 rounded-lg border border-[#E6E6E6] hover:border-[#F28C00] hover:bg-[#FFF4E5]/25 transition-colors cursor-pointer group"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[#E87500]">
+              Step 1 · Track
+            </p>
+            <p className="text-sm font-bold text-[#151515] mt-0.5 group-hover:text-[#E87500] transition-colors">
+              Browse All Change Requests →
+            </p>
+            <p className="text-xs text-[#666666] mt-0.5">
+              Inspect active plant PCRFs, 4M changes, and department submissions.
+            </p>
+          </button>
+        )}
 
         <button
           type="button"
@@ -436,6 +490,81 @@ export function RoleDashboard({
                   />
                 </div>
               </div>
+              <div className="pt-3 border-t border-[#E6E6E6] space-y-3">
+                <label className="inline-flex items-center gap-2 text-xs font-bold text-[#151515] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={createInitialAccount}
+                    onChange={(e) => setCreateInitialAccount(e.target.checked)}
+                    className="rounded border-[#E6E6E6] accent-[#F28C00]"
+                  />
+                  <span>Create Individual Login Account (Username &amp; Password) for this Company</span>
+                </label>
+
+                {createInitialAccount && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                      <label htmlFor="dash-acc-user" className="block text-xs font-semibold text-[#666666] mb-1">
+                        Username *
+                      </label>
+                      <input
+                        id="dash-acc-user"
+                        type="text"
+                        value={accUsername}
+                        onChange={(e) => setAccUsername(e.target.value)}
+                        placeholder="unit2_hod"
+                        className="w-full px-3 py-2 text-xs font-mono bg-white border border-[#E6E6E6] rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="dash-acc-name" className="block text-xs font-semibold text-[#666666] mb-1">
+                        Account Holder Name *
+                      </label>
+                      <input
+                        id="dash-acc-name"
+                        type="text"
+                        value={accFullName}
+                        onChange={(e) => setAccFullName(e.target.value)}
+                        placeholder="M. Kannan"
+                        className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="dash-acc-pass" className="block text-xs font-semibold text-[#666666] mb-1">
+                        Password (min 6 chars) *
+                      </label>
+                      <input
+                        id="dash-acc-pass"
+                        type="password"
+                        value={accPassword}
+                        onChange={(e) => setAccPassword(e.target.value)}
+                        placeholder="Enter password"
+                        className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="dash-acc-role" className="block text-xs font-semibold text-[#666666] mb-1">
+                        JWT Access Role
+                      </label>
+                      <select
+                        id="dash-acc-role"
+                        value={accRole}
+                        onChange={(e) => setAccRole(e.target.value as UserRole)}
+                        className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                      >
+                        <option value="EMPLOYEE">Employee / Requisitioner</option>
+                        <option value="HOD">Head of Department (HOD)</option>
+                        <option value="HOF">Head of Foundry (HOF)</option>
+                        <option value="COF">Chief of Facility (COF)</option>
+                        <option value="CFT">CFT Member</option>
+                        <option value="CFT_LEADER">CFT Leader</option>
+                        <option value="PLANT_HEAD">Plant Head</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end">
                 <button
                   type="submit"
