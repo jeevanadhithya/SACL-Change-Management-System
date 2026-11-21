@@ -23,10 +23,16 @@ router.get('/health', (_req, res) => {
 });
 
 // Authentication & Users (Strict JWT RBAC)
+router.get('/auth/portal-accounts', authController.getPortalAccounts);
 router.post('/auth/login', authController.login);
 router.get('/auth/me', verifyToken, authController.me);
+router.put('/auth/profile', verifyToken, authController.updateOwnProfile);
+router.put('/auth/password', verifyToken, authController.changeOwnPassword);
 router.get('/users', verifyToken, requireRole('ADMIN'), authController.getUsers);
 router.post('/users', verifyToken, requireRole('ADMIN'), authController.createUser);
+router.put('/users/:id', verifyToken, requireRole('ADMIN'), authController.updateUser);
+router.put('/users/:id/password', verifyToken, requireRole('ADMIN'), authController.changeUserPassword);
+router.delete('/users/:id', verifyToken, requireRole('ADMIN'), authController.deleteUser);
 
 // Companies & Individual Company Login Accounts (Admin Only for mutations)
 router.get('/companies', verifyToken, companyController.getCompanies);
@@ -42,6 +48,8 @@ router.get('/customers', verifyToken, customerPartController.getCustomers);
 router.post('/customers', verifyToken, requireRole('ADMIN', 'CFT_LEADER', 'COF'), customerPartController.createCustomer);
 router.get('/parts', verifyToken, customerPartController.getParts);
 router.post('/parts', verifyToken, requireRole('ADMIN', 'CFT_LEADER', 'COF'), customerPartController.createPart);
+router.put('/parts/:id', verifyToken, requireRole('ADMIN', 'CFT_LEADER', 'COF'), customerPartController.updatePart);
+router.delete('/parts/:id', verifyToken, requireRole('ADMIN', 'CFT_LEADER', 'COF'), customerPartController.deletePart);
 
 // Change Requests & Exact PDF Full-Form Controllers (Forms 1 to 7)
 router.get('/pcrfs', verifyToken, processChangeRequisitionFormController.listPCRFs);
@@ -49,7 +57,7 @@ router.get('/pcrfs/:id', verifyToken, processChangeRequisitionFormController.get
 router.post(
   '/pcrfs',
   verifyToken,
-  requireRole('ADMIN', 'EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT_LEADER'),
+  requireRole('ADMIN', 'EMPLOYEE', 'COMPANY_USER', 'HOD', 'HOF', 'COF', 'CFT_LEADER'),
   processChangeRequisitionFormController.createPCRF,
 );
 

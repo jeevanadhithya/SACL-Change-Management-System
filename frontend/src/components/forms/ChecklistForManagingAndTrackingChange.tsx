@@ -89,83 +89,79 @@ export function ChecklistForManagingAndTrackingChange({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[#666666]">
-            <span className="font-mono font-bold text-[#151515]">QF/07/MRO-03</span>
+      <div className="surface-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[#5C6470]">
+            <span className="font-mono font-bold text-[#111318]">QF/07/MRO-03</span>
             <span>·</span>
             <span>01.12.2003 (Pages 01 to 04 of 04)</span>
             <span>·</span>
-            <span className="inline-flex items-center gap-1 text-[#E87500] font-semibold">
+            <span className="inline-flex items-center gap-1 text-[#D97700] font-semibold">
               <Link2 className="w-3.5 h-3.5" /> Linked to {form.productCode}
             </span>
           </div>
-          <h3 className="text-base font-bold text-[#151515] mt-0.5">
+          <h3 className="text-base font-bold text-[#111318]">
             Form 5 — Checklist for Managing and Tracking Change
           </h3>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={onPrintOfficial}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#151515] text-xs font-bold text-[#151515] hover:bg-[#151515] hover:text-white transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <Printer className="w-3.5 h-3.5" />
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button type="button" onClick={onPrintOfficial} className="btn-secondary">
+            <Printer className="w-4 h-4" />
             <span>Print 4-Page Official Format</span>
           </button>
           <button
             type="button"
             disabled={saving}
             onClick={() => onSave(form)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
+            className="btn-primary"
           >
-            <Save className="w-3.5 h-3.5" />
+            <Save className="w-4 h-4" />
             <span>{saving ? 'Saving...' : 'Save Checklist'}</span>
           </button>
         </div>
       </div>
 
       {/* Header & Progress Bar */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4">
+      <div className="surface-card p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">Product Code</label>
+            <label className="field-label">Product Code</label>
             <input
               type="text"
               readOnly
               value={form.productCode}
-              className="w-full px-3 py-2 text-sm font-mono bg-[#F7F7F7] border border-[#E6E6E6] rounded-lg"
+              className="field-input font-mono bg-[#F8F9FB]"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">Product Description</label>
+            <label className="field-label">Product Description</label>
             <input
               type="text"
               readOnly
               value={form.productDescription}
-              className="w-full px-3 py-2 text-sm bg-[#F7F7F7] border border-[#E6E6E6] rounded-lg"
+              className="field-input bg-[#F8F9FB]"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">Customer Name</label>
+            <label className="field-label">Customer Name</label>
             <input
               type="text"
               readOnly
               value={form.customerName}
-              className="w-full px-3 py-2 text-sm bg-[#F7F7F7] border border-[#E6E6E6] rounded-lg"
+              className="field-input bg-[#F8F9FB]"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">Customer Part No.</label>
+            <label className="field-label">Customer Part No.</label>
             <input
               type="text"
               value={form.customerPartNo}
               onChange={(e) => setForm({ ...form, customerPartNo: e.target.value })}
-              className="w-full px-3 py-2 text-sm font-mono border border-[#E6E6E6] rounded-lg"
+              className="field-input font-mono"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">Change Type</label>
+            <label className="field-label">Change Type</label>
             <select
               value={form.changeCategoryType}
               onChange={(e) =>
@@ -174,7 +170,7 @@ export function ChecklistForManagingAndTrackingChange({
                   changeCategoryType: e.target.value as Form5ChangeChecklist['changeCategoryType'],
                 })
               }
-              className="w-full px-3 py-2 text-sm border border-[#E6E6E6] rounded-lg bg-white"
+              className="field-input"
             >
               <option value="Prod. Change">Prod. Change</option>
               <option value="Desg. Change">Desg. Change</option>
@@ -183,20 +179,20 @@ export function ChecklistForManagingAndTrackingChange({
           </div>
         </div>
 
-        <div className="pt-3 border-t border-[#E6E6E6] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            <span className="font-bold text-[#151515] tabular-nums">
+        <div className="pt-4 border-t border-[#E4E7EC] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4 text-xs tabular-nums">
+            <span className="font-bold text-[#111318]">
               Completion: {progress.percentComplete}% ({progress.completedActions}/{progress.total} items)
             </span>
-            <span className="text-[#E87500] font-semibold">
+            <span className="text-[#D97700] font-semibold">
               Affected (Yes → Next): {progress.affectedYes}
             </span>
-            <span className="text-[#666666]">
+            <span className="text-[#5C6470]">
               Not Affected (No → Terminate): {progress.affectedNo}
             </span>
           </div>
           {progress.shouldTerminateChecklist && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+            <span className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700">
               <CheckCircle2 className="w-4 h-4" /> All items Not Affected — Ready to Terminate Checklist
             </span>
           )}
@@ -204,9 +200,9 @@ export function ChecklistForManagingAndTrackingChange({
       </div>
 
       {/* Page Tabs, Quick Triage & Add Row */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 bg-[#F7F7F7] border-b border-[#E6E6E6] flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E6E6E6] rounded-lg">
+      <div className="surface-card overflow-hidden">
+        <div className="surface-header flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E4E7EC] rounded-lg">
             {(
               [
                 [0, 'All 4 Pages (33)'],
@@ -220,8 +216,8 @@ export function ChecklistForManagingAndTrackingChange({
                 key={pg}
                 type="button"
                 onClick={() => setActivePage(pg)}
-                className={`px-3 py-1 rounded text-xs font-semibold cursor-pointer ${
-                  activePage === pg ? 'bg-[#151515] text-white' : 'text-[#666666] hover:text-[#151515]'
+                className={`h-8 px-3 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
+                  activePage === pg ? 'bg-[#111318] text-white' : 'text-[#5C6470] hover:text-[#111318]'
                 }`}
               >
                 {label}
@@ -229,14 +225,14 @@ export function ChecklistForManagingAndTrackingChange({
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4">
             <button
               type="button"
               onClick={() => setOnlyAffected((v) => !v)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded border text-xs font-semibold cursor-pointer ${
+              className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
                 onlyAffected
                   ? 'bg-[#F28C00] text-white border-[#F28C00]'
-                  : 'bg-white text-[#151515] border-[#E6E6E6]'
+                  : 'bg-white text-[#111318] border-[#E4E7EC] hover:border-[#111318]'
               }`}
             >
               <Filter className="w-3.5 h-3.5" />
@@ -247,7 +243,7 @@ export function ChecklistForManagingAndTrackingChange({
               <button
                 type="button"
                 onClick={markVisiblePendingAsNo}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[#151515] hover:text-[#E87500] cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111318] hover:text-[#D97700] cursor-pointer"
               >
                 <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Mark Pending as &lsquo;No&rsquo;</span>
@@ -257,7 +253,7 @@ export function ChecklistForManagingAndTrackingChange({
             <button
               type="button"
               onClick={addCustomItem}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#E87500] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#D97700] hover:underline cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" /> Add Checklist Item
             </button>
@@ -267,48 +263,51 @@ export function ChecklistForManagingAndTrackingChange({
         <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-[#F7F7F7] border-b border-[#E6E6E6] text-[11px] font-bold text-[#666666] uppercase">
-                <th className="py-2.5 px-3 w-12">Pg</th>
-                <th className="py-2.5 px-3 min-w-[210px]">Impact of Change to be Considered On</th>
-                <th className="py-2.5 px-3 w-36">Is Affected? (Yes/No)</th>
-                <th className="py-2.5 px-3 min-w-[160px]">Action Comments</th>
-                <th className="py-2.5 px-3 w-40">Responsibility</th>
-                <th className="py-2.5 px-3 w-32">Reqd. Date</th>
-                <th className="py-2.5 px-3 w-32">Actual Date</th>
-                <th className="py-2.5 px-3 w-28">Doc. No.</th>
-                <th className="py-2.5 px-3 w-24">Cur. Rev.</th>
-                <th className="py-2.5 px-3 min-w-[120px]">Remarks</th>
+              <tr className="bg-[#F8F9FB] border-b border-[#E4E7EC] text-[11px] font-bold text-[#5C6470] uppercase tracking-wider">
+                <th className="h-10 px-4 w-12">Pg</th>
+                <th className="h-10 px-3 min-w-[210px]">Impact of Change to be Considered On</th>
+                <th className="h-10 px-3 w-36">Is Affected? (Yes/No)</th>
+                <th className="h-10 px-3 min-w-[160px]">Action Comments</th>
+                <th className="h-10 px-3 w-40">Responsibility</th>
+                <th className="h-10 px-3 w-32">Reqd. Date</th>
+                <th className="h-10 px-3 w-32">Actual Date</th>
+                <th className="h-10 px-3 w-28">Doc. No.</th>
+                <th className="h-10 px-3 w-24">Cur. Rev.</th>
+                <th className="h-10 px-4 min-w-[120px]">Remarks</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E6E6E6]">
+            <tbody className="divide-y divide-[#E4E7EC]">
               {visibleItems.map((item) => {
                 const disabledByNo = item.isAffected === 'No';
                 return (
-                  <tr key={item.id} className={disabledByNo ? 'bg-neutral-50 text-neutral-400' : ''}>
-                    <td className="p-2 font-mono text-center text-[#666666]">0{item.page}</td>
-                    <td className="p-2 font-semibold text-[#151515]">
+                  <tr
+                    key={item.id}
+                    className={disabledByNo ? 'bg-[#F8F9FB] text-[#8C95A4]' : 'hover:bg-[#F8F9FB] transition-colors'}
+                  >
+                    <td className="py-3 px-4 font-mono text-center text-[#5C6470] tabular-nums">0{item.page}</td>
+                    <td className="py-3 px-3 font-semibold text-[#111318]">
                       <input
                         type="text"
                         value={item.impactArea}
                         onChange={(e) => updateItem(item.id, { impactArea: e.target.value })}
-                        className="w-full bg-transparent focus:outline-none focus:border-b focus:border-[#F28C00]"
+                        className="w-full h-8 bg-transparent focus:outline-none focus:border-b focus:border-[#F28C00]"
                       />
                     </td>
-                    <td className="p-2">
-                      <div className="inline-flex rounded border border-[#E6E6E6] overflow-hidden bg-white">
+                    <td className="py-3 px-3">
+                      <div className="inline-flex rounded-md border border-[#E4E7EC] overflow-hidden bg-white">
                         {(['Yes', 'No', 'Pending'] as const).map((opt) => (
                           <button
                             key={opt}
                             type="button"
                             onClick={() => updateItem(item.id, { isAffected: opt })}
-                            className={`px-2 py-1 text-[11px] font-bold cursor-pointer ${
+                            className={`h-8 px-2 text-[11px] font-bold cursor-pointer ${
                               item.isAffected === opt
                                 ? opt === 'Yes'
                                   ? 'bg-[#F28C00] text-white'
                                   : opt === 'No'
-                                  ? 'bg-[#151515] text-white'
-                                  : 'bg-neutral-300 text-[#151515]'
-                                : 'text-[#666666]'
+                                  ? 'bg-[#111318] text-white'
+                                  : 'bg-[#E4E7EC] text-[#111318]'
+                                : 'text-[#5C6470]'
                             }`}
                           >
                             {opt === 'Pending' ? '—' : opt}
@@ -316,17 +315,17 @@ export function ChecklistForManagingAndTrackingChange({
                         ))}
                       </div>
                     </td>
-                    <td className="p-2">
+                    <td className="py-3 px-3">
                       <input
                         type="text"
                         disabled={disabledByNo}
                         value={item.actionComments}
                         onChange={(e) => updateItem(item.id, { actionComments: e.target.value })}
                         placeholder={disabledByNo ? 'Terminated (N/A)' : 'Action...'}
-                        className="w-full px-2 py-1 border border-[#E6E6E6] rounded bg-white disabled:bg-neutral-100"
+                        className="w-full h-8 px-2 border border-[#E4E7EC] rounded-md bg-white disabled:bg-[#F4F5F7]"
                       />
                     </td>
-                    <td className="p-2">
+                    <td className="py-3 px-3">
                       <select
                         disabled={disabledByNo}
                         value={
@@ -335,7 +334,7 @@ export function ChecklistForManagingAndTrackingChange({
                             : ''
                         }
                         onChange={(e) => updateItem(item.id, { responsibility: e.target.value })}
-                        className="w-full px-2 py-1 border border-[#E6E6E6] rounded bg-white disabled:bg-neutral-100"
+                        className="w-full h-8 px-2 border border-[#E4E7EC] rounded-md bg-white disabled:bg-[#F4F5F7]"
                       >
                         {RESPONSIBILITY_DROPDOWN.map((r) => (
                           <option key={r} value={r}>
@@ -344,49 +343,49 @@ export function ChecklistForManagingAndTrackingChange({
                         ))}
                       </select>
                     </td>
-                    <td className="p-2">
+                    <td className="py-3 px-3">
                       <input
                         type="date"
                         disabled={disabledByNo}
                         value={item.reqdDate}
                         onChange={(e) => updateItem(item.id, { reqdDate: e.target.value })}
-                        className="w-full px-1.5 py-1 font-mono border border-[#E6E6E6] rounded bg-white disabled:bg-neutral-100"
+                        className="w-full h-8 px-2 font-mono border border-[#E4E7EC] rounded-md bg-white disabled:bg-[#F4F5F7]"
                       />
                     </td>
-                    <td className="p-2">
+                    <td className="py-3 px-3">
                       <input
                         type="date"
                         disabled={disabledByNo}
                         value={item.actualDate}
                         onChange={(e) => updateItem(item.id, { actualDate: e.target.value })}
-                        className="w-full px-1.5 py-1 font-mono border border-[#E6E6E6] rounded bg-white disabled:bg-neutral-100"
+                        className="w-full h-8 px-2 font-mono border border-[#E4E7EC] rounded-md bg-white disabled:bg-[#F4F5F7]"
                       />
                     </td>
-                    <td className="p-2">
+                    <td className="py-3 px-3">
                       <input
                         type="text"
                         disabled={disabledByNo}
                         value={item.docNo}
                         onChange={(e) => updateItem(item.id, { docNo: e.target.value })}
-                        className="w-full px-2 py-1 font-mono border border-[#E6E6E6] rounded bg-white disabled:bg-neutral-100"
+                        className="w-full h-8 px-2 font-mono border border-[#E4E7EC] rounded-md bg-white disabled:bg-[#F4F5F7]"
                       />
                     </td>
-                    <td className="p-2">
+                    <td className="py-3 px-3">
                       <input
                         type="text"
                         disabled={disabledByNo}
                         value={item.curRev}
                         onChange={(e) => updateItem(item.id, { curRev: e.target.value })}
                         placeholder="Rev"
-                        className="w-full px-2 py-1 font-mono border border-[#E6E6E6] rounded bg-white disabled:bg-neutral-100"
+                        className="w-full h-8 px-2 font-mono border border-[#E4E7EC] rounded-md bg-white disabled:bg-[#F4F5F7]"
                       />
                     </td>
-                    <td className="p-2">
+                    <td className="py-3 px-4">
                       <input
                         type="text"
                         value={item.remarks}
                         onChange={(e) => updateItem(item.id, { remarks: e.target.value })}
-                        className="w-full px-2 py-1 border border-[#E6E6E6] rounded bg-white"
+                        className="w-full h-8 px-2 border border-[#E4E7EC] rounded-md bg-white"
                       />
                     </td>
                   </tr>
@@ -394,7 +393,7 @@ export function ChecklistForManagingAndTrackingChange({
               })}
               {visibleItems.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="p-6 text-center text-xs text-[#666666]">
+                  <td colSpan={10} className="p-8 text-center text-xs text-[#5C6470]">
                     No checklist items match this filter.
                   </td>
                 </tr>
@@ -405,60 +404,58 @@ export function ChecklistForManagingAndTrackingChange({
       </div>
 
       {/* Page 4 Final Implementation Details & Informed To */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-5">
-        <h4 className="text-sm font-bold text-[#151515] border-b border-[#E6E6E6] pb-2">
+      <div className="surface-card p-6 space-y-6">
+        <h4 className="text-sm font-bold text-[#111318] border-b border-[#E4E7EC] pb-4">
           Final Implementation Details &amp; Core Team Sign-off (Page 04 of 04)
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">
+            <label className="field-label">
               Actual Date of Implementation of Change (By CFT &amp; Planning)
             </label>
             <input
               type="date"
               value={form.actualImplementationDate}
               onChange={(e) => setForm({ ...form, actualImplementationDate: e.target.value })}
-              className="w-full px-3 py-2 text-sm font-mono border border-[#E6E6E6] rounded-lg"
+              className="field-input font-mono"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">
-              Any Other Remarks
-            </label>
+            <label className="field-label">Any Other Remarks</label>
             <input
               type="text"
               value={form.otherRemarks}
               onChange={(e) => setForm({ ...form, otherRemarks: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-[#E6E6E6] rounded-lg"
+              className="field-input"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">
+            <label className="field-label">
               Actions Taken / Proposed on Stock Produced Prior to Modification (Product changes only)
             </label>
             <textarea
               rows={2}
               value={form.actionsOnStockProduced}
               onChange={(e) => setForm({ ...form, actionsOnStockProduced: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-[#E6E6E6] rounded-lg"
+              className="field-textarea"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#666666] mb-1">
+            <label className="field-label">
               Actions Taken / Proposed on Toolings Prior to Modification (By CFT &amp; Planning)
             </label>
             <textarea
               rows={2}
               value={form.actionsOnToolings}
               onChange={(e) => setForm({ ...form, actionsOnToolings: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-[#E6E6E6] rounded-lg"
+              className="field-textarea"
             />
           </div>
         </div>
 
         {/* Informed To Checkboxes */}
-        <div className="pt-2 border-t border-[#E6E6E6] flex flex-wrap items-center gap-5">
-          <span className="text-xs font-bold text-[#151515]">Informed To (CFT &amp; Planning):</span>
+        <div className="pt-4 border-t border-[#E4E7EC] flex flex-wrap items-center gap-6">
+          <span className="text-xs font-bold text-[#111318]">Informed To (CFT &amp; Planning):</span>
           {(
             [
               ['customer', 'Customer'],
@@ -469,7 +466,7 @@ export function ChecklistForManagingAndTrackingChange({
               ['qc', 'QC'],
             ] as const
           ).map(([key, label]) => (
-            <label key={key} className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+            <label key={key} className="inline-flex items-center gap-2 text-xs font-semibold text-[#111318] cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.informedTo[key]}
@@ -486,12 +483,12 @@ export function ChecklistForManagingAndTrackingChange({
           ))}
         </div>
 
-        {/* 3 Prepared & Signed By Blocks */}
+        {/* 3 Prepared & Signed By Blocks (flattened) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {form.signOffs.map((s, idx) => (
-            <div key={idx} className="p-3 border border-[#E6E6E6] rounded-lg space-y-2">
+            <div key={idx} className="p-4 bg-[#F8F9FB] rounded-lg space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-[#666666]">Signatory {idx + 1}</p>
+                <p className="text-xs font-bold text-[#5C6470]">Signatory {idx + 1}</p>
                 {currentUser && (
                   <button
                     type="button"
@@ -509,7 +506,7 @@ export function ChecklistForManagingAndTrackingChange({
                         ),
                       })
                     }
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E87500] hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#D97700] hover:underline cursor-pointer"
                   >
                     <PenLine className="w-3 h-3" /> Sign as Me
                   </button>
@@ -527,7 +524,7 @@ export function ChecklistForManagingAndTrackingChange({
                   })
                 }
                 placeholder="Name"
-                className="w-full px-2.5 py-1.5 text-xs border border-[#E6E6E6] rounded"
+                className="field-input !h-8 !text-xs"
               />
               <input
                 type="text"
@@ -541,7 +538,7 @@ export function ChecklistForManagingAndTrackingChange({
                   })
                 }
                 placeholder="Title"
-                className="w-full px-2.5 py-1.5 text-xs border border-[#E6E6E6] rounded"
+                className="field-input !h-8 !text-xs"
               />
               <input
                 type="text"
@@ -555,7 +552,7 @@ export function ChecklistForManagingAndTrackingChange({
                   })
                 }
                 placeholder="Digital Sign / Initials"
-                className="w-full px-2.5 py-1.5 text-xs border border-[#E6E6E6] rounded"
+                className="field-input !h-8 !text-xs"
               />
             </div>
           ))}

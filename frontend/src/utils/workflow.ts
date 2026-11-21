@@ -274,7 +274,10 @@ export function syncInterconnectedFields(record: ChangeRequestRecord): ChangeReq
     },
     form4: {
       ...record.form4,
-      drawingPartNo: f1.partNo,
+      drawingPartNo:
+        record.form4.drawingPartNo && f1.partNo && record.form4.drawingPartNo.includes(f1.partNo)
+          ? record.form4.drawingPartNo
+          : f1.partNo,
       productName: f1.partName,
       customer: f1.customer,
       projectName: record.form4.projectName || `${f1.customer} - ${f1.partName}`,

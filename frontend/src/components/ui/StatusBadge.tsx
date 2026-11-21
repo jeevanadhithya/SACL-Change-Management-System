@@ -18,7 +18,7 @@ export function getStatusColor(status: string): string {
     case 'Critical':
     case 'HIGH':
     case 'H':
-      return 'text-[#E87500]';
+      return 'text-[#D97700]';
     case 'REJECTED':
     case 'Rejected':
     case 'NOT FEASIBLE':
@@ -33,7 +33,7 @@ export function getStatusColor(status: string): string {
     case 'M':
       return 'text-amber-700';
     default:
-      return 'text-[#666666]';
+      return 'text-[#5C6470]';
   }
 }
 
@@ -70,6 +70,8 @@ export function RoleDisplayLabel(role: string): string {
       return 'Head of Department (HOD)';
     case 'EMPLOYEE':
       return 'Employee / Engineer';
+    case 'COMPANY_USER':
+      return 'Company Representative';
     case 'CFT':
       return 'CFT Member';
     case 'CFT_LEADER':

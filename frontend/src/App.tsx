@@ -10,10 +10,12 @@ import {
 import { AppShell, type NavSectionKey } from './components/AppShell';
 import { ApprovalCenter } from './components/ApprovalCenter';
 import { ChangeRequestDetails, type DetailsTabKey } from './components/ChangeRequestDetails';
+import { CompanyViewPage } from './components/CompanyViewPage';
 import { CreatePCRFPage } from './components/CreatePCRFPage';
 import { LoginPage } from './components/LoginPage';
 import { PCRFListPage } from './components/PCRFListPage';
 import { OfficialFormPrintModal } from './components/print/OfficialFormPrintModal';
+import { ProfilePage } from './components/ProfilePage';
 import { RoleDashboard } from './components/RoleDashboard';
 import {
   AuditLogsPage,
@@ -43,7 +45,15 @@ import type {
 
 const STORAGE_KEY = 'sacl_pcms_user';
 
-const PCRF_CREATOR_ROLES: UserRole[] = ['ADMIN', 'EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT_LEADER'];
+const PCRF_CREATOR_ROLES: UserRole[] = [
+  'ADMIN',
+  'EMPLOYEE',
+  'COMPANY_USER',
+  'HOD',
+  'HOF',
+  'COF',
+  'CFT_LEADER',
+];
 
 export default function App() {
   const [user, setUser] = useState<UserAccount | null>(() => {
@@ -59,6 +69,8 @@ export default function App() {
 
   const [activeNav, setActiveNav] = useState<NavSectionKey>('dashboard');
   const [selectedPcrfId, setSelectedPcrfId] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [createPcrfCompanyId, setCreatePcrfCompanyId] = useState<string | undefined>(undefined);
   const [detailsInitialTab, setDetailsInitialTab] = useState<DetailsTabKey>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [printPreview, setPrintPreview] = useState<{
@@ -84,6 +96,8 @@ export default function App() {
     clearAuthSession();
     setUser(null);
     setSelectedPcrfId(null);
+    setSelectedCompanyId(null);
+    setCreatePcrfCompanyId(undefined);
     setActiveNav('dashboard');
     setUsers([]);
     setAuditLogs([]);
@@ -129,13 +143,16 @@ export default function App() {
     }
   }, [user, handleLogout]);
 
+  const activeUserId = user?.id ?? null;
+  const activeUserRole = user?.role ?? null;
+
   const loadWorkspaceData = useCallback(async () => {
-    if (!user || !getAuthToken()) return;
+    if (!activeUserId || !activeUserRole || !getAuthToken()) return;
     setLoadingData(true);
     setErrorBanner(null);
     try {
-      const canLoadUsers = user.role === 'ADMIN';
-      const canLoadAudits = user.role === 'ADMIN' || user.role === 'PLANT_HEAD';
+      const canLoadUsers = activeUserRole === 'ADMIN';
+      const canLoadAudits = activeUserRole === 'ADMIN' || activeUserRole === 'PLANT_HEAD';
 
       const [pcrfRes, notifRes, masterRes, usersRes, auditRes] = await Promise.all([
         api.getPCRFs(),
@@ -157,7 +174,7 @@ export default function App() {
     } finally {
       setLoadingData(false);
     }
-  }, [user]);
+  }, [activeUserId, activeUserRole]);
 
   useEffect(() => {
     void loadWorkspaceData();
@@ -168,16 +185,30 @@ export default function App() {
     setUser(loggedUser);
     setActiveNav('dashboard');
     setSelectedPcrfId(null);
+    setSelectedCompanyId(null);
+    setCreatePcrfCompanyId(undefined);
   }
 
   function handleSelectNav(nav: NavSectionKey) {
     setSelectedPcrfId(null);
+    setSelectedCompanyId(null);
+    if (nav !== 'create-pcrf') {
+      setCreatePcrfCompanyId(undefined);
+    }
     setActiveNav(nav);
   }
 
-  function handleOpenCreatePCRF() {
+  function handleOpenCreatePCRF(forCompanyId?: string) {
     setSelectedPcrfId(null);
+    setSelectedCompanyId(null);
+    setCreatePcrfCompanyId(forCompanyId);
     setActiveNav('create-pcrf');
+  }
+
+  function handleViewCompany(companyId: string) {
+    setSelectedPcrfId(null);
+    setSelectedCompanyId(companyId);
+    setActiveNav('companies');
   }
 
   function handleOpenPCRF(pcrfId: string, tab: DetailsTabKey = 'overview') {
@@ -235,12 +266,32 @@ export default function App() {
     setUsers((prev) => [...prev, created]);
   }
 
+  async function handleUpdateUser(id: string, payload: Partial<UserAccount>) {
+    const { user: updated } = await api.updateUser(id, payload);
+    setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
+  }
+
+  async function handleChangeUserPassword(id: string, password: string) {
+    const { user: updated } = await api.changeUserPassword(id, password);
+    setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
+  }
+
+  async function handleDeleteUser(id: string) {
+    await api.deleteUser(id);
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  }
+
   async function handleCreateCompany(payload: CreateCompanyPayload) {
     const { company, account } = await api.createCompany(payload);
     setCompanies((prev) => [company, ...prev]);
     if (account) {
       setUsers((prev) => [...prev, account]);
     }
+  }
+
+  async function handleUpdateCompany(id: string, payload: Partial<CompanyRecord>) {
+    const { company: updated } = await api.updateCompany(id, payload);
+    setCompanies((prev) => prev.map((c) => (c.id === id ? updated : c)));
   }
 
   async function handleCreateCompanyAccount(
@@ -251,12 +302,78 @@ export default function App() {
     setUsers((prev) => [...prev, created]);
   }
 
+  async function handleCreateDepartment(payload: {
+    code: string;
+    name: string;
+    facility: DepartmentRecord['facility'];
+    hodName: string;
+    memberCount: number;
+  }) {
+    const { department } = await api.createDepartment(payload);
+    setDepartments((prev) => [...prev, department]);
+  }
+
+  async function handleCreateCustomer(payload: {
+    code: string;
+    name: string;
+    location: string;
+    contactPerson: string;
+  }) {
+    const { customer } = await api.createCustomer(payload);
+    setCustomers((prev) => [...prev, customer]);
+  }
+
+  async function handleCreatePart(payload: Partial<PartMasterRecord>) {
+    const { part } = await api.createPart(payload);
+    setParts((prev) => [...prev, part]);
+  }
+
+  async function handleUpdatePart(id: string, payload: Partial<PartMasterRecord>) {
+    const { part } = await api.updatePart(id, payload);
+    setParts((prev) => prev.map((pt) => (pt.id === id ? part : pt)));
+  }
+
+  async function handleDeletePart(id: string) {
+    await api.deletePart(id);
+    setParts((prev) => prev.filter((pt) => pt.id !== id));
+  }
+
+  async function handleUpdateOwnProfile(payload: {
+    name: string;
+    email: string;
+    phone: string;
+    department: string;
+    title: string;
+    facility: UserAccount['facility'];
+    plantLocation: string;
+    bio: string;
+    avatarInitials: string;
+    emailNotifications: boolean;
+    inAppNotifications: boolean;
+  }) {
+    const { user: updatedUser } = await api.updateMyProfile(payload);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    return updatedUser;
+  }
+
+  async function handleChangeOwnPassword(currentPassword: string, newPassword: string) {
+    const { user: updatedUser } = await api.changeMyPassword(currentPassword, newPassword);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  }
+
   if (!user) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
   const selectedPcrf = selectedPcrfId
     ? pcrfs.find((p) => p.id === selectedPcrfId) || null
+    : null;
+
+  const selectedCompany = selectedCompanyId
+    ? companies.find((c) => c.id === selectedCompanyId) || null
     : null;
 
   const printRecord = printPreview
@@ -281,12 +398,18 @@ export default function App() {
     'customers-parts': { title: 'Customers & Parts', crumbs: ['Administration', 'Masters'] },
     'audit-logs': { title: 'Audit Logs', crumbs: ['Administration', 'Audit Logs'] },
     settings: { title: 'Settings', crumbs: ['Administration', 'Settings'] },
+    profile: { title: 'My Profile', crumbs: ['Account', 'My Profile'] },
   };
 
   const currentMeta = selectedPcrf
     ? {
         title: `${selectedPcrf.pcrfNo} — ${selectedPcrf.form1.partName}`,
         crumbs: ['Change Requests', selectedPcrf.pcrfNo],
+      }
+    : activeNav === 'companies' && selectedCompany
+    ? {
+        title: `${selectedCompany.code} — ${selectedCompany.name}`,
+        crumbs: ['Administration', 'Companies', selectedCompany.code],
       }
     : navMeta[activeNav];
 
@@ -313,12 +436,12 @@ export default function App() {
           onLogout={handleLogout}
         >
           {errorBanner && (
-            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center justify-between">
+            <div className="mb-6 px-4 py-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center justify-between gap-4">
               <span>{errorBanner}</span>
               <button
                 type="button"
                 onClick={() => setErrorBanner(null)}
-                className="underline cursor-pointer"
+                className="underline cursor-pointer shrink-0"
               >
                 Dismiss
               </button>
@@ -326,9 +449,9 @@ export default function App() {
           )}
 
           {loadingData && pcrfs.length === 0 ? (
-            <div className="bg-white border border-[#E6E6E6] rounded-xl p-8 space-y-4">
-              <div className="h-6 w-48 bg-[#F7F7F7] rounded animate-pulse" />
-              <div className="h-24 w-full bg-[#F7F7F7] rounded animate-pulse" />
+            <div className="surface-card p-8 space-y-4">
+              <div className="h-6 w-48 bg-[#F4F5F7] rounded animate-pulse" />
+              <div className="h-24 w-full bg-[#F4F5F7] rounded animate-pulse" />
             </div>
           ) : selectedPcrf ? (
             <ChangeRequestDetails
@@ -352,8 +475,9 @@ export default function App() {
                   companies={companies}
                   canCreatePCRF={canCreatePCRF}
                   onCreateCompany={user.role === 'ADMIN' ? handleCreateCompany : undefined}
+                  onViewCompany={user.role === 'ADMIN' ? handleViewCompany : undefined}
                   onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-                  onCreateNew={handleOpenCreatePCRF}
+                  onCreateNew={() => handleOpenCreatePCRF()}
                   onNavigate={handleSelectNav}
                 />
               )}
@@ -365,25 +489,27 @@ export default function App() {
                   searchQuery={searchQuery}
                   canCreatePCRF={canCreatePCRF}
                   onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
-                  onCreateNew={handleOpenCreatePCRF}
+                  onCreateNew={() => handleOpenCreatePCRF()}
                 />
               )}
 
               {activeNav === 'create-pcrf' &&
                 (canCreatePCRF ? (
                   <CreatePCRFPage
+                    key={createPcrfCompanyId || 'default-company'}
                     user={user}
                     companies={companies}
                     departments={departments}
                     customers={customers}
                     parts={parts}
+                    initialCompanyId={createPcrfCompanyId}
                     onCancel={() => setActiveNav('pcrfs')}
                     onCreate={handleCreatePCRF}
                   />
                 ) : (
-                  <div className="bg-white border border-[#E6E6E6] rounded-xl p-8 text-center space-y-2">
-                    <h2 className="text-lg font-bold text-[#151515]">Role Permission Required</h2>
-                    <p className="text-sm text-[#666666]">
+                  <div className="surface-card p-8 text-center space-y-2">
+                    <h2 className="text-lg font-bold text-[#111318]">Role Permission Required</h2>
+                    <p className="text-sm text-[#5C6470]">
                       Your current role ({user.role}) does not have permission to initiate new PCRFs.
                     </p>
                   </div>
@@ -401,6 +527,8 @@ export default function App() {
               {activeNav === 'forms-hub' && (
                 <ConsultancyFormsHub
                   pcrfs={pcrfs}
+                  canCreatePCRF={canCreatePCRF}
+                  onCreateNew={() => handleOpenCreatePCRF()}
                   onOpenPCRFTab={(pcrfId, tab) => handleOpenPCRF(pcrfId, tab)}
                   onPrintForm={(pcrfId, formKey) => setPrintPreview({ pcrfId, formKey })}
                 />
@@ -440,20 +568,54 @@ export default function App() {
                 />
               )}
 
-              {activeNav === 'companies' && (
-                <CompaniesPage
-                  companies={companies}
-                  users={users}
+              {activeNav === 'companies' &&
+                (selectedCompany ? (
+                  <CompanyViewPage
+                    key={selectedCompany.id}
+                    company={selectedCompany}
+                    currentUser={user}
+                    users={users}
+                    parts={parts}
+                    pcrfs={pcrfs}
+                    onBack={() => setSelectedCompanyId(null)}
+                    onUpdateCompany={handleUpdateCompany}
+                    onCreateCompanyAccount={handleCreateCompanyAccount}
+                    onUpdateUser={handleUpdateUser}
+                    onChangeUserPassword={handleChangeUserPassword}
+                    onDeleteUser={handleDeleteUser}
+                    onCreatePart={handleCreatePart}
+                    onUpdatePart={handleUpdatePart}
+                    onDeletePart={handleDeletePart}
+                    onOpenPCRF={(id) => handleOpenPCRF(id, 'overview')}
+                    onCreatePCRFForCompany={() => handleOpenCreatePCRF(selectedCompany.id)}
+                  />
+                ) : (
+                  <CompaniesPage
+                    companies={companies}
+                    users={users}
+                    parts={parts}
+                    currentUser={user}
+                    onCreateCompany={handleCreateCompany}
+                    onViewCompany={handleViewCompany}
+                  />
+                ))}
+
+              {activeNav === 'departments' && (
+                <DepartmentsPage
+                  departments={departments}
                   currentUser={user}
-                  onCreateCompany={handleCreateCompany}
-                  onCreateCompanyAccount={handleCreateCompanyAccount}
+                  onCreateDepartment={handleCreateDepartment}
                 />
               )}
 
-              {activeNav === 'departments' && <DepartmentsPage departments={departments} />}
-
               {activeNav === 'customers-parts' && (
-                <CustomersPartsPage customers={customers} parts={parts} />
+                <CustomersPartsPage
+                  customers={customers}
+                  parts={parts}
+                  currentUser={user}
+                  onCreateCustomer={handleCreateCustomer}
+                  onCreatePart={handleCreatePart}
+                />
               )}
 
               {activeNav === 'audit-logs' &&
@@ -462,6 +624,14 @@ export default function App() {
                 )}
 
               {activeNav === 'settings' && user.role === 'ADMIN' && <SettingsPage />}
+
+              {activeNav === 'profile' && (
+                <ProfilePage
+                  user={user}
+                  onUpdateProfile={handleUpdateOwnProfile}
+                  onChangePassword={handleChangeOwnPassword}
+                />
+              )}
             </>
           )}
         </AppShell>

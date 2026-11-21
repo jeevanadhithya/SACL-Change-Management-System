@@ -128,35 +128,35 @@ export function ChangeRequestDetails({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Top Action & Toast */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#666666] hover:text-[#151515] cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#5C6470] hover:text-[#111318] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Change Requests</span>
         </button>
 
         {toast && (
-          <div className="px-3.5 py-1.5 rounded-lg bg-[#151515] text-white text-xs font-semibold">
+          <div className="px-4 py-2 rounded-lg bg-[#121417] text-white text-xs font-semibold">
             {toast}
           </div>
         )}
       </div>
 
       {/* Central PCRF Header Summary */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-5">
+      <div className="surface-card p-6 space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#666666]">
-              <span className="font-mono font-extrabold text-[#151515]">{record.pcrfNo}</span>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#5C6470]">
+              <span className="font-mono font-extrabold text-[#111318]">{record.pcrfNo}</span>
               {record.companyName ? (
                 <>
                   <span>·</span>
-                  <span className="font-semibold text-[#151515]">{record.companyName}</span>
+                  <span className="font-semibold text-[#111318]">{record.companyName}</span>
                 </>
               ) : null}
               <span>·</span>
@@ -164,24 +164,28 @@ export function ChangeRequestDetails({
               <span>·</span>
               <span>{record.form1.department}</span>
               <span>·</span>
-              <span className="font-semibold text-[#E87500]">{record.priority} Priority</span>
+              <span className="font-semibold text-[#D97700]">{record.priority} Priority</span>
             </div>
-            <h2 className="text-xl font-extrabold text-[#151515]">{record.title}</h2>
-            <p className="text-xs text-[#666666]">
-              Part: <strong className="text-[#151515]">{record.form1.partName}</strong> (
+            <h2 className="text-2xl leading-8 font-extrabold text-[#111318] tracking-tight">
+              {record.title}
+            </h2>
+            <p className="text-xs text-[#5C6470]">
+              Part: <strong className="text-[#111318]">{record.form1.partName}</strong> (
               <span className="font-mono">{record.form1.partNo}</span>) · Classification:{' '}
-              <strong className="text-[#151515]">
+              <strong className="text-[#111318]">
                 {record.form1.changeType} · {record.form1.classifications.join(', ')} ·{' '}
                 {record.form1.facilityScope}
               </strong>{' '}
-              · Created By: <strong className="text-[#151515]">{record.createdBy}</strong>
+              · Created By: <strong className="text-[#111318]">{record.createdBy}</strong>
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-4 shrink-0">
             <div className="lg:text-right">
-              <p className="text-[11px] text-[#666666] uppercase font-semibold">Current Stage</p>
-              <p className="text-xs font-bold text-[#151515]">
+              <p className="text-[11px] text-[#5C6470] uppercase font-semibold tracking-wider">
+                Current Stage
+              </p>
+              <p className="text-xs font-bold text-[#111318] mt-1">
                 {currentStageMeta?.label || record.currentStage}
               </p>
               <StatusText status={record.overallStatus} />
@@ -189,17 +193,17 @@ export function ChangeRequestDetails({
             <button
               type="button"
               onClick={() => onOpenPrintModal('form1')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#151515] hover:bg-[#242424] text-white text-xs font-bold cursor-pointer"
+              className="btn-dark"
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-4 h-4" />
               <span>Print Official Forms</span>
             </button>
           </div>
         </div>
 
         {/* 9-Stage Interactive Workflow Timeline */}
-        <div className="pt-4 border-t border-[#E6E6E6]">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-2.5">
+        <div className="pt-6 border-t border-[#E4E7EC]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-2">
             {record.workflow.map((st, idx) => {
               const isCompleted = st.status === 'COMPLETED';
               const isCurrent = st.status === 'IN_PROGRESS';
@@ -212,9 +216,9 @@ export function ChangeRequestDetails({
                   type="button"
                   onClick={() => setActiveTab(targetTab)}
                   title={`Open ${st.label}`}
-                  className="flex flex-col text-left group cursor-pointer rounded-lg p-1.5 hover:bg-[#F7F7F7] transition-colors min-w-0"
+                  className="flex flex-col text-left group cursor-pointer rounded-lg p-2 hover:bg-[#F8F9FB] transition-colors min-w-0"
                 >
-                  <div className="flex items-center gap-1.5 mb-1.5 w-full">
+                  <div className="flex items-center gap-2 mb-2 w-full">
                     <span
                       className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 tabular-nums transition-transform group-hover:scale-105 ${
                         isCompleted
@@ -225,21 +229,21 @@ export function ChangeRequestDetails({
                           ? 'bg-red-600 text-white'
                           : isReturned
                           ? 'bg-amber-600 text-white'
-                          : 'bg-[#F7F7F7] text-[#666666] border border-[#E6E6E6]'
+                          : 'bg-[#F4F5F7] text-[#5C6470] border border-[#E4E7EC]'
                       }`}
                     >
                       {idx + 1}
                     </span>
                     <div
                       className={`h-0.5 flex-1 ${
-                        isCompleted ? 'bg-emerald-600' : 'bg-[#E6E6E6]'
+                        isCompleted ? 'bg-emerald-600' : 'bg-[#E4E7EC]'
                       }`}
                     />
                   </div>
-                  <p className="text-[11px] font-bold text-[#151515] group-hover:text-[#E87500] leading-tight">
+                  <p className="text-[11px] font-bold text-[#111318] group-hover:text-[#D97700] leading-4">
                     {st.label}
                   </p>
-                  <div className="mt-0.5">
+                  <div className="mt-1">
                     <StatusText status={st.status} />
                   </div>
                 </button>
@@ -251,12 +255,12 @@ export function ChangeRequestDetails({
 
       {/* Next Step Guidance Banner */}
       {record.overallStatus !== 'Closed' && record.overallStatus !== 'Rejected' && (
-        <div className="bg-white border border-[#E6E6E6] rounded-xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="text-xs">
-            <span className="font-bold uppercase tracking-wider text-[#E87500]">
+        <div className="surface-card px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="text-xs space-y-1">
+            <span className="font-bold uppercase tracking-[0.08em] text-[#D97700]">
               Active Stage: {currentStageMeta?.label || record.currentStage}
             </span>
-            <p className="text-[#444444] mt-0.5">
+            <p className="text-[#344054]">
               {canApproveCurrent
                 ? 'Your role is authorized to review and sign off on this stage.'
                 : 'Fill or review the active stage form below. Metadata auto-syncs across all 7 forms.'}
@@ -267,7 +271,7 @@ export function ChangeRequestDetails({
               <button
                 type="button"
                 onClick={() => setActiveTab(recommendedTab)}
-                className="px-3.5 py-2 rounded-lg bg-[#151515] hover:bg-[#F28C00] text-white text-xs font-bold whitespace-nowrap transition-colors cursor-pointer"
+                className="btn-dark"
               >
                 Open Stage Form →
               </button>
@@ -276,7 +280,7 @@ export function ChangeRequestDetails({
               <button
                 type="button"
                 onClick={() => setActiveTab('approval')}
-                className="px-3.5 py-2 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+                className="btn-primary"
               >
                 Review &amp; Approve Stage →
               </button>
@@ -285,17 +289,17 @@ export function ChangeRequestDetails({
         </div>
       )}
 
-      {/* 11-Tab Navigation */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+      {/* 11-Tab Navigation (8pt Rhythm: p-2, gap-1, h-10 tabs) */}
+      <div className="surface-card p-2 flex items-center gap-1 overflow-x-auto no-scrollbar">
         {TABS.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setActiveTab(t.key)}
-            className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+            className={`h-10 px-4 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
               activeTab === t.key
                 ? 'bg-[#F28C00] text-white'
-                : 'text-[#666666] hover:text-[#151515] hover:bg-[#F7F7F7]'
+                : 'text-[#5C6470] hover:text-[#111318] hover:bg-[#F8F9FB]'
             }`}
           >
             {t.label}
@@ -305,12 +309,12 @@ export function ChangeRequestDetails({
 
       {/* Tab Body */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-[#151515] border-b border-[#E6E6E6] pb-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="lg:col-span-2 surface-card p-6 space-y-4">
+            <h3 className="text-sm font-bold text-[#111318] border-b border-[#E4E7EC] pb-4">
               Interconnected 7-Form Completion Status
             </h3>
-            <div className="divide-y divide-[#E6E6E6]">
+            <div className="divide-y divide-[#E4E7EC]">
               {(
                 [
                   ['form1', 'Form 1 — Process Change Requisition (PCRF)', 'QF/07/MRO-15', `${record.form1.particularsRows.length} particular(s)`],
@@ -322,25 +326,25 @@ export function ChangeRequestDetails({
                   ['form7', 'Form 7 — PPAP Initiation & Production Report', 'QF/07/MRO-05', `Submission: ${record.form7.submissionStatus}`],
                 ] as const
               ).map(([fKey, label, code, summary]) => (
-                <div key={fKey} className="py-3 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-[#151515]">{label}</p>
-                    <p className="text-xs text-[#666666]">
+                <div key={fKey} className="py-4 flex flex-wrap items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-[#111318]">{label}</p>
+                    <p className="text-xs text-[#5C6470]">
                       <span className="font-mono">{code}</span> · {summary}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={() => onOpenPrintModal(fKey)}
-                      className="px-2.5 py-1.5 rounded border border-[#E6E6E6] hover:border-[#151515] text-xs font-semibold text-[#151515] cursor-pointer"
+                      className="btn-compact border border-[#D5DAE1] bg-white hover:border-[#121417] text-[#111318]"
                     >
                       Print
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveTab(fKey)}
-                      className="px-3 py-1.5 rounded bg-[#151515] hover:bg-[#F28C00] text-white text-xs font-semibold cursor-pointer transition-colors"
+                      className="btn-compact bg-[#121417] hover:bg-[#F28C00] text-white"
                     >
                       Fill / Edit
                     </button>
@@ -350,27 +354,31 @@ export function ChangeRequestDetails({
             </div>
           </div>
 
-          <div className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-[#151515] border-b border-[#E6E6E6] pb-2">
+          <div className="surface-card p-6 space-y-4">
+            <h3 className="text-sm font-bold text-[#111318] border-b border-[#E4E7EC] pb-4">
               Reason &amp; Engineering Summary
             </h3>
-            <p className="text-sm text-[#333333] leading-relaxed">{record.form1.reasonForChange}</p>
-            <div className="space-y-2 pt-2 border-t border-[#E6E6E6] text-xs">
-              <div className="flex justify-between">
-                <span className="text-[#666666]">SOP Reflection</span>
-                <span className="font-semibold">
+            <p className="text-sm text-[#344054] leading-6">{record.form1.reasonForChange}</p>
+            <div className="space-y-2 pt-4 border-t border-[#E4E7EC] text-xs">
+              <div className="flex justify-between gap-4">
+                <span className="text-[#5C6470]">SOP Reflection</span>
+                <span className="font-semibold text-[#111318]">
                   {record.form1.changeReflectionInSOP
                     ? `Required (${record.form1.sopDocumentRef || 'Pending Ref'})`
                     : 'Not flagged'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#666666]">Target Due Date</span>
-                <span className="font-mono font-semibold">{record.dueDate}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-[#5C6470]">Target Due Date</span>
+                <span className="font-mono font-semibold tabular-nums text-[#111318]">
+                  {record.dueDate}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#666666]">Last Updated</span>
-                <span className="font-mono font-semibold">{record.updatedAt}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-[#5C6470]">Last Updated</span>
+                <span className="font-mono font-semibold tabular-nums text-[#111318]">
+                  {record.updatedAt}
+                </span>
               </div>
             </div>
           </div>
@@ -449,16 +457,16 @@ export function ChangeRequestDetails({
 
       {/* Sequential Form Wizard Bar */}
       {currentFormIdx !== -1 && (
-        <div className="bg-white border border-[#E6E6E6] rounded-xl px-5 py-3 flex items-center justify-between gap-3">
+        <div className="surface-card px-6 py-4 flex items-center justify-between gap-4">
           <button
             type="button"
             disabled={currentFormIdx === 0}
             onClick={() => setActiveTab(FORM_SEQUENCE[currentFormIdx - 1])}
-            className="px-3.5 py-2 rounded-lg border border-[#E6E6E6] hover:border-[#151515] text-xs font-bold text-[#151515] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+            className="btn-secondary disabled:pointer-events-none"
           >
             ← Previous Form
           </button>
-          <span className="text-xs font-semibold text-[#666666] tabular-nums">
+          <span className="text-xs font-semibold text-[#5C6470] tabular-nums">
             Form {currentFormIdx + 1} of {FORM_SEQUENCE.length}
           </span>
           <button
@@ -470,7 +478,7 @@ export function ChangeRequestDetails({
                   : 'approval',
               )
             }
-            className="px-3.5 py-2 rounded-lg bg-[#151515] hover:bg-[#F28C00] text-white text-xs font-bold transition-colors cursor-pointer"
+            className="btn-dark hover:bg-[#F28C00]"
           >
             {currentFormIdx < FORM_SEQUENCE.length - 1 ? 'Next Form →' : 'Go to Approval Gate →'}
           </button>
@@ -478,13 +486,13 @@ export function ChangeRequestDetails({
       )}
 
       {activeTab === 'approval' && (
-        <div className="bg-white border border-[#E6E6E6] rounded-xl p-6 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6E6E6] pb-4">
-            <div>
-              <h3 className="text-base font-bold text-[#151515]">
+        <div className="surface-card p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E4E7EC] pb-4">
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-[#111318]">
                 Stage Approval Gate — {currentStageMeta?.label}
               </h3>
-              <p className="text-xs text-[#666666]">
+              <p className="text-xs text-[#5C6470]">
                 Authorized decisions advance or return the change request across the 9-stage workflow.
               </p>
             </div>
@@ -494,7 +502,7 @@ export function ChangeRequestDetails({
           {canApproveCurrent ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#151515] mb-1.5">
+                <label className="field-label">
                   Approval / Review Comments &amp; Sign-Off Note
                 </label>
                 <textarea
@@ -502,16 +510,16 @@ export function ChangeRequestDetails({
                   value={decisionComments}
                   onChange={(e) => setDecisionComments(e.target.value)}
                   placeholder="Enter technical review remarks, conditions, or rejection/return justification..."
-                  className="w-full px-3 py-2 text-sm border border-[#E6E6E6] rounded-lg focus:outline-none focus:border-[#F28C00]"
+                  className="field-textarea"
                 />
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-4">
                 <button
                   type="button"
                   disabled={submittingDecision}
                   onClick={() => handleDecisionSubmit('APPROVE')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                  className="btn-primary"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Approve &amp; Advance Stage</span>
@@ -520,7 +528,7 @@ export function ChangeRequestDetails({
                   type="button"
                   disabled={submittingDecision}
                   onClick={() => handleDecisionSubmit('RETURN')}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#151515] text-[#151515] hover:bg-[#F7F7F7] text-xs font-bold cursor-pointer disabled:opacity-60"
+                  className="btn-secondary"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Return for Correction</span>
@@ -529,7 +537,7 @@ export function ChangeRequestDetails({
                   type="button"
                   disabled={submittingDecision}
                   onClick={() => handleDecisionSubmit('REJECT')}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-600 text-red-600 hover:bg-red-50 text-xs font-bold cursor-pointer disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-red-600 text-red-600 hover:bg-red-50 text-[13px] font-semibold cursor-pointer disabled:opacity-55 transition-colors"
                 >
                   <XCircle className="w-4 h-4" />
                   <span>Reject Change</span>
@@ -537,9 +545,9 @@ export function ChangeRequestDetails({
               </div>
             </div>
           ) : (
-            <div className="p-4 rounded-lg bg-[#F7F7F7] border border-[#E6E6E6] text-xs text-[#666666]">
-              Your current role (<strong>{user.role}</strong>) is read-only for the{' '}
-              <strong>{currentStageMeta?.label}</strong> approval gate. Authorized approvers can sign
+            <div className="p-4 rounded-lg bg-[#F8F9FB] text-xs text-[#5C6470]">
+              Your current role (<strong className="text-[#111318]">{user.role}</strong>) is read-only for the{' '}
+              <strong className="text-[#111318]">{currentStageMeta?.label}</strong> approval gate. Authorized approvers can sign
               off from this screen or the Approval Center.
             </div>
           )}
@@ -547,18 +555,16 @@ export function ChangeRequestDetails({
       )}
 
       {activeTab === 'documents' && (
-        <div className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#E6E6E6] pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-[#151515]">
-                Official Printable Documents &amp; Engineering Records
-              </h3>
-              <p className="text-xs text-[#666666]">
-                Every official consultancy form renders directly from live saved database records.
-              </p>
-            </div>
+        <div className="surface-card p-6 space-y-6">
+          <div className="border-b border-[#E4E7EC] pb-4 space-y-1">
+            <h3 className="text-sm font-bold text-[#111318]">
+              Official Printable Documents &amp; Engineering Records
+            </h3>
+            <p className="text-xs text-[#5C6470]">
+              Every official consultancy form renders directly from live saved database records.
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {(
               [
                 ['form1', 'QF/07/MRO-15', 'Process Change Requisition Form'],
@@ -572,18 +578,18 @@ export function ChangeRequestDetails({
             ).map(([fKey, code, title]) => (
               <div
                 key={fKey}
-                className="p-4 border border-[#E6E6E6] rounded-lg flex flex-col justify-between gap-3"
+                className="p-4 bg-[#F8F9FB] rounded-lg flex flex-col justify-between gap-4"
               >
-                <div>
-                  <span className="font-mono text-xs font-bold text-[#E87500]">{code}</span>
-                  <p className="text-sm font-bold text-[#151515] mt-0.5">{title}</p>
+                <div className="space-y-1">
+                  <span className="font-mono text-xs font-bold text-[#D97700]">{code}</span>
+                  <p className="text-sm font-bold text-[#111318]">{title}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => onOpenPrintModal(fKey)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#151515] hover:bg-[#F28C00] text-white text-xs font-bold transition-colors cursor-pointer"
+                  className="btn-dark w-full hover:bg-[#F28C00]"
                 >
-                  <Printer className="w-3.5 h-3.5" />
+                  <Printer className="w-4 h-4" />
                   <span>Open Official Printable PDF</span>
                 </button>
               </div>
@@ -593,25 +599,25 @@ export function ChangeRequestDetails({
       )}
 
       {activeTab === 'history' && (
-        <div className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4">
-          <h3 className="text-sm font-bold text-[#151515] border-b border-[#E6E6E6] pb-2">
+        <div className="surface-card p-6 space-y-4">
+          <h3 className="text-sm font-bold text-[#111318] border-b border-[#E4E7EC] pb-4">
             Activity &amp; Audit Trail
           </h3>
-          <div className="divide-y divide-[#E6E6E6]">
+          <div className="divide-y divide-[#E4E7EC]">
             {record.activityHistory.map((entry) => (
-              <div key={entry.id} className="py-3 flex items-start gap-3 text-xs">
+              <div key={entry.id} className="py-4 flex items-start gap-4 text-xs">
                 <Clock className="w-4 h-4 text-[#F28C00] shrink-0 mt-0.5" />
-                <div className="flex-1">
+                <div className="flex-1 space-y-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-bold text-[#151515]">{entry.action}</span>
-                    <span className="font-mono text-[#666666]">
+                    <span className="font-bold text-[#111318]">{entry.action}</span>
+                    <span className="font-mono tabular-nums text-[#5C6470]">
                       {new Date(entry.timestamp).toLocaleString()}
                     </span>
                   </div>
-                  <p className="text-[#666666] mt-0.5">
+                  <p className="text-[#5C6470]">
                     {entry.actorName} ({entry.actorRole}) · Stage: {entry.stage}
                   </p>
-                  {entry.comments && <p className="text-[#151515] mt-1">{entry.comments}</p>}
+                  {entry.comments && <p className="text-[#111318]">{entry.comments}</p>}
                 </div>
               </div>
             ))}

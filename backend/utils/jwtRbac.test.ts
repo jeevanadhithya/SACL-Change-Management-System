@@ -88,4 +88,37 @@ test('RBAC role helpers and Bearer token extraction enforce strict role boundari
   assert.equal(hasRequiredRole('CFT', RBAC_ROLES.PCRF_CREATORS), false);
   assert.equal(canApproveStageForRole('PLANT_HEAD', 'INTERNAL_APPROVAL'), true);
   assert.equal(canApproveStageForRole('EMPLOYEE', 'INTERNAL_APPROVAL'), false);
+  assert.equal(hasRequiredRole('COMPANY_USER', RBAC_ROLES.PCRF_CREATORS), true);
+  assert.equal(hasRequiredRole('COMPANY_USER', RBAC_ROLES.ADMIN_ONLY), false);
+  assert.equal(canApproveStageForRole('COMPANY_USER', 'PCRF'), false);
+});
+
+test('COMPANY_USER JWT token retains companyId and updated password hash validates cleanly', () => {
+  const token = signJwtToken(
+    {
+      id: 'u-comp-rep',
+      employeeId: 'U1_REP',
+      username: 'u1_rep',
+      name: 'K. Arvind',
+      role: 'COMPANY_USER',
+      department: 'Machine Shop Unit I',
+      companyId: 'comp-u1',
+      companyCode: 'SACL-U1',
+      companyName: 'Sakthi Auto Component Limited (Machine Shop Unit I)',
+    },
+    { secret: 'test-secret', nowSeconds: 2000, expiresInSeconds: 3600 },
+  );
+  const res = verifyJwtToken(token, { secret: 'test-secret', nowSeconds: 2500 });
+  assert.equal(res.valid, true);
+  if (res.valid) {
+    assert.equal(res.payload.role, 'COMPANY_USER');
+    assert.equal(res.payload.companyId, 'comp-u1');
+    assert.equal(res.payload.companyCode, 'SACL-U1');
+  }
+
+  const oldHash = hashPassword('pass1234');
+  const newHash = hashPassword('newpass99');
+  assert.equal(verifyPassword('pass1234', oldHash), true);
+  assert.equal(verifyPassword('pass1234', newHash), false);
+  assert.equal(verifyPassword('newpass99', newHash), true);
 });

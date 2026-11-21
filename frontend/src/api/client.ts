@@ -62,6 +62,15 @@ export interface CreateCompanyPayload extends Partial<CompanyRecord> {
   initialAccount?: CreateCompanyAccountPayload;
 }
 
+export interface PortalAccountOption {
+  id: string;
+  employeeId: string;
+  username: string;
+  name: string;
+  role: UserRole;
+  companyCode?: string | null;
+}
+
 async function apiJson<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getAuthToken();
   const headers: Record<string, string> = {
@@ -90,6 +99,9 @@ async function apiJson<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  getPortalAccounts() {
+    return apiJson<{ accounts: PortalAccountOption[] }>('/api/auth/portal-accounts');
+  },
   async login(employeeId: string, password: string) {
     const res = await apiJson<{ user: UserAccount; token?: string }>('/api/auth/login', {
       method: 'POST',
@@ -103,6 +115,34 @@ export const api = {
   me() {
     return apiJson<{ user: UserAccount }>('/api/auth/me');
   },
+  async updateMyProfile(payload: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    department?: string;
+    title?: string;
+    facility?: UserAccount['facility'];
+    plantLocation?: string;
+    bio?: string;
+    avatarInitials?: string;
+    emailNotifications?: boolean;
+    inAppNotifications?: boolean;
+  }) {
+    const res = await apiJson<{ user: UserAccount; token?: string }>('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (res.token) {
+      setAuthToken(res.token);
+    }
+    return res;
+  },
+  changeMyPassword(currentPassword: string, newPassword: string) {
+    return apiJson<{ ok: boolean; user: UserAccount }>('/api/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
   getUsers() {
     return apiJson<{ users: UserAccount[] }>('/api/users');
   },
@@ -110,6 +150,23 @@ export const api = {
     return apiJson<{ user: UserAccount }>('/api/users', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+  },
+  updateUser(id: string, payload: Partial<UserAccount>) {
+    return apiJson<{ user: UserAccount }>(`/api/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  changeUserPassword(id: string, password: string) {
+    return apiJson<{ ok: boolean; user: UserAccount }>(`/api/users/${id}/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ password }),
+    });
+  },
+  deleteUser(id: string) {
+    return apiJson<{ ok: boolean; deletedId: string }>(`/api/users/${id}`, {
+      method: 'DELETE',
     });
   },
   getCompanies() {
@@ -140,6 +197,35 @@ export const api = {
       customers: CustomerRecord[];
       parts: PartMasterRecord[];
     }>('/api/master-data');
+  },
+  createDepartment(payload: Partial<DepartmentRecord>) {
+    return apiJson<{ department: DepartmentRecord }>('/api/departments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  createCustomer(payload: Partial<CustomerRecord>) {
+    return apiJson<{ customer: CustomerRecord }>('/api/customers', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  createPart(payload: Partial<PartMasterRecord>) {
+    return apiJson<{ part: PartMasterRecord }>('/api/parts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  updatePart(id: string, payload: Partial<PartMasterRecord>) {
+    return apiJson<{ part: PartMasterRecord }>(`/api/parts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  deletePart(id: string) {
+    return apiJson<{ ok: boolean; deletedId: string }>(`/api/parts/${id}`, {
+      method: 'DELETE',
+    });
   },
   getPCRFs() {
     return apiJson<{ pcrfs: ChangeRequestRecord[] }>('/api/pcrfs');

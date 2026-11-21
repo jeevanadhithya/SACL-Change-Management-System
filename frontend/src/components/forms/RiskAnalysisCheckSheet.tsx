@@ -89,71 +89,67 @@ export function RiskAnalysisCheckSheet({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[#666666]">
-            <span className="font-mono font-bold text-[#151515]">QF/07/MKT-14</span>
+      <div className="surface-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[#5C6470]">
+            <span className="font-mono font-bold text-[#111318]">QF/07/MKT-14</span>
             <span>·</span>
             <span>Rev.No.02 dt 13.02.2019</span>
             <span>·</span>
-            <span className="inline-flex items-center gap-1 text-[#E87500] font-semibold">
+            <span className="inline-flex items-center gap-1 text-[#D97700] font-semibold">
               <Link2 className="w-3.5 h-3.5" /> Linked to {form.partNo} ({form.customer})
             </span>
           </div>
-          <h3 className="text-base font-bold text-[#151515] mt-0.5">
+          <h3 className="text-base font-bold text-[#111318]">
             Form 3 — Risk Analysis Check Sheet
           </h3>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={onPrintOfficial}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#151515] text-xs font-bold text-[#151515] hover:bg-[#151515] hover:text-white transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <Printer className="w-3.5 h-3.5" />
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button type="button" onClick={onPrintOfficial} className="btn-secondary">
+            <Printer className="w-4 h-4" />
             <span>Print Official Format</span>
           </button>
           <button
             type="button"
             disabled={saving}
             onClick={() => onSave(form)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
+            className="btn-primary"
           >
-            <Save className="w-3.5 h-3.5" />
+            <Save className="w-4 h-4" />
             <span>{saving ? 'Saving...' : 'Save Risk Analysis'}</span>
           </button>
         </div>
       </div>
 
       {/* Live Risk Summary Bar */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-4 grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <div>
-          <p className="text-xs text-[#666666]">Part / Customer</p>
-          <p className="text-sm font-bold text-[#151515] truncate">{form.partName}</p>
-          <p className="text-xs font-mono text-[#666666]">{form.partNo}</p>
+      <div className="surface-card p-6 grid grid-cols-2 sm:grid-cols-5 gap-6">
+        <div className="space-y-1">
+          <p className="text-xs text-[#5C6470]">Part / Customer</p>
+          <p className="text-sm font-bold text-[#111318] truncate">{form.partName}</p>
+          <p className="text-xs font-mono text-[#5C6470]">{form.partNo}</p>
         </div>
-        <div>
-          <p className="text-xs text-[#666666]">High Risk Items</p>
-          <p className="text-xl font-extrabold text-red-600 tabular-nums">{stats.highCount}</p>
+        <div className="space-y-1">
+          <p className="text-xs text-[#5C6470]">High Risk Items</p>
+          <p className="text-2xl font-bold text-red-600 tabular-nums leading-8">{stats.highCount}</p>
         </div>
-        <div>
-          <p className="text-xs text-[#666666]">Medium Risk Items</p>
-          <p className="text-xl font-extrabold text-[#E87500] tabular-nums">{stats.mediumCount}</p>
+        <div className="space-y-1">
+          <p className="text-xs text-[#5C6470]">Medium Risk Items</p>
+          <p className="text-2xl font-bold text-[#D97700] tabular-nums leading-8">{stats.mediumCount}</p>
         </div>
-        <div>
-          <p className="text-xs text-[#666666]">Low / NA Items</p>
-          <p className="text-xl font-extrabold text-[#151515] tabular-nums">
+        <div className="space-y-1">
+          <p className="text-xs text-[#5C6470]">Low / NA Items</p>
+          <p className="text-2xl font-bold text-[#111318] tabular-nums leading-8">
             {stats.lowCount} / {stats.naCount}
           </p>
         </div>
-        <div>
-          <p className="text-xs text-[#666666]">Computed Overall Risk</p>
+        <div className="space-y-1">
+          <p className="text-xs text-[#5C6470]">Computed Overall Risk</p>
           <p
-            className={`text-xl font-extrabold tabular-nums ${
+            className={`text-2xl font-bold tabular-nums leading-8 ${
               form.overallRiskLevel === 'H'
                 ? 'text-red-600'
                 : form.overallRiskLevel === 'M'
-                ? 'text-[#E87500]'
+                ? 'text-[#D97700]'
                 : 'text-emerald-700'
             }`}
           >
@@ -163,18 +159,18 @@ export function RiskAnalysisCheckSheet({
       </div>
 
       {/* Interactive Risk Matrix */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#E6E6E6] flex flex-wrap items-center justify-between gap-3 bg-[#F7F7F7]">
-          <div className="flex flex-wrap items-center gap-1.5">
+      <div className="surface-card overflow-hidden">
+        <div className="surface-header flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setCategoryFilter(cat)}
-                className={`px-2.5 py-1 rounded text-xs font-semibold cursor-pointer ${
+                className={`h-8 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
                   categoryFilter === cat
-                    ? 'bg-[#151515] text-white'
-                    : 'bg-white text-[#666666] border border-[#E6E6E6] hover:text-[#151515]'
+                    ? 'bg-[#111318] text-white'
+                    : 'bg-white text-[#5C6470] border border-[#E4E7EC] hover:text-[#111318]'
                 }`}
               >
                 {cat === 'ALL' ? `All (${form.riskRows.length})` : cat}
@@ -182,12 +178,12 @@ export function RiskAnalysisCheckSheet({
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4">
             {stats.naCount > 0 && (
               <button
                 type="button"
                 onClick={markUnevaluatedLow}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[#151515] hover:text-[#E87500] cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111318] hover:text-[#D97700] cursor-pointer"
               >
                 <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Set Unevaluated (NA) as Low</span>
@@ -196,7 +192,7 @@ export function RiskAnalysisCheckSheet({
             <button
               type="button"
               onClick={addCustomRiskRow}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#E87500] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#D97700] hover:underline cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" /> Add Risk Point
             </button>
@@ -206,59 +202,59 @@ export function RiskAnalysisCheckSheet({
         <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-[#F7F7F7] border-b border-[#E6E6E6] text-[11px] font-bold text-[#666666] uppercase">
-                <th className="py-2.5 px-3 w-24">Category</th>
-                <th className="py-2.5 px-3 w-48">Risk Points</th>
-                <th className="py-2.5 px-3 w-24">AP / NAP</th>
-                <th className="py-2.5 px-3 min-w-[180px]">Control Method</th>
-                <th className="py-2.5 px-3 w-56">Risk Level (High / Low / Med / NA)</th>
-                <th className="py-2.5 px-3 w-36">Effect on QCD</th>
-                <th className="py-2.5 px-3 min-w-[180px]">Actions</th>
+              <tr className="bg-[#F8F9FB] border-b border-[#E4E7EC] text-[11px] font-bold text-[#5C6470] uppercase tracking-wider">
+                <th className="h-10 px-4 w-24">Category</th>
+                <th className="h-10 px-3 w-48">Risk Points</th>
+                <th className="h-10 px-3 w-24">AP / NAP</th>
+                <th className="h-10 px-3 min-w-[180px]">Control Method</th>
+                <th className="h-10 px-3 w-56">Risk Level (High / Low / Med / NA)</th>
+                <th className="h-10 px-3 w-36">Effect on QCD</th>
+                <th className="h-10 px-4 min-w-[180px]">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E6E6E6]">
+            <tbody className="divide-y divide-[#E4E7EC]">
               {visibleRows.map((row) => {
                 const isHigh = row.riskLevel === 'HIGH';
                 return (
                   <tr
                     key={row.id}
-                    className={isHigh ? 'bg-red-50/70' : 'hover:bg-[#F7F7F7]/60'}
+                    className={isHigh ? 'bg-red-50/70' : 'hover:bg-[#F8F9FB] transition-colors'}
                   >
-                    <td className="p-2.5 font-bold text-[#151515]">{row.category}</td>
-                    <td className="p-2.5 font-medium text-[#151515]">
+                    <td className="py-3 px-4 font-bold text-[#111318]">{row.category}</td>
+                    <td className="py-3 px-3 font-medium text-[#111318]">
                       <div className="flex items-center gap-1.5">
                         {isHigh && <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />}
                         <input
                           type="text"
                           value={row.riskPoint}
                           onChange={(e) => updateRow(row.id, { riskPoint: e.target.value })}
-                          className="w-full bg-transparent border-b border-transparent focus:border-[#F28C00] focus:outline-none"
+                          className="w-full h-8 bg-transparent border-b border-transparent focus:border-[#F28C00] focus:outline-none"
                         />
                       </div>
                     </td>
-                    <td className="p-2.5">
+                    <td className="py-3 px-3">
                       <select
                         value={row.applicability}
                         onChange={(e) =>
                           updateRow(row.id, { applicability: e.target.value as 'AP' | 'NAP' })
                         }
-                        className="px-2 py-1 border border-[#E6E6E6] rounded bg-white font-semibold"
+                        className="h-8 px-2 border border-[#E4E7EC] rounded-md bg-white font-semibold"
                       >
                         <option value="AP">AP</option>
                         <option value="NAP">NAP</option>
                       </select>
                     </td>
-                    <td className="p-2.5">
+                    <td className="py-3 px-3">
                       <input
                         type="text"
                         value={row.controlMethod}
                         onChange={(e) => updateRow(row.id, { controlMethod: e.target.value })}
                         placeholder="Control method..."
-                        className="w-full px-2 py-1 border border-[#E6E6E6] rounded bg-white"
+                        className="w-full h-8 px-2 border border-[#E4E7EC] rounded-md bg-white focus:outline-none focus:border-[#F28C00]"
                       />
                     </td>
-                    <td className="p-2.5">
-                      <div className="inline-flex rounded-md border border-[#E6E6E6] overflow-hidden bg-white">
+                    <td className="py-3 px-3">
+                      <div className="inline-flex rounded-md border border-[#E4E7EC] overflow-hidden bg-white">
                         {(['HIGH', 'MEDIUM', 'LOW', 'NA'] as const).map((lvl) => {
                           const active = row.riskLevel === lvl;
                           const activeStyle =
@@ -268,14 +264,14 @@ export function RiskAnalysisCheckSheet({
                               ? 'bg-[#F28C00] text-white'
                               : lvl === 'LOW'
                               ? 'bg-emerald-600 text-white'
-                              : 'bg-[#151515] text-white';
+                              : 'bg-[#111318] text-white';
                           return (
                             <button
                               key={lvl}
                               type="button"
                               onClick={() => updateRow(row.id, { riskLevel: lvl })}
-                              className={`px-2 py-1 text-[11px] font-bold cursor-pointer ${
-                                active ? activeStyle : 'text-[#666666] hover:bg-[#F7F7F7]'
+                              className={`h-8 px-2 text-[11px] font-bold cursor-pointer ${
+                                active ? activeStyle : 'text-[#5C6470] hover:bg-[#F8F9FB]'
                               }`}
                             >
                               {lvl === 'MEDIUM' ? 'MED' : lvl}
@@ -284,11 +280,11 @@ export function RiskAnalysisCheckSheet({
                         })}
                       </div>
                     </td>
-                    <td className="p-2.5">
+                    <td className="py-3 px-3">
                       <select
                         value={row.effectOnQCD}
                         onChange={(e) => updateRow(row.id, { effectOnQCD: e.target.value })}
-                        className="w-full px-2 py-1 border border-[#E6E6E6] rounded bg-white"
+                        className="w-full h-8 px-2 border border-[#E4E7EC] rounded-md bg-white"
                       >
                         <option value="">Select QCD</option>
                         <option value="Quality">Quality</option>
@@ -299,13 +295,13 @@ export function RiskAnalysisCheckSheet({
                         <option value="None">None</option>
                       </select>
                     </td>
-                    <td className="p-2.5">
+                    <td className="py-3 px-4">
                       <input
                         type="text"
                         value={row.actions}
                         onChange={(e) => updateRow(row.id, { actions: e.target.value })}
                         placeholder="Mitigation action..."
-                        className="w-full px-2 py-1 border border-[#E6E6E6] rounded bg-white"
+                        className="w-full h-8 px-2 border border-[#E4E7EC] rounded-md bg-white focus:outline-none focus:border-[#F28C00]"
                       />
                     </td>
                   </tr>
@@ -317,23 +313,23 @@ export function RiskAnalysisCheckSheet({
       </div>
 
       {/* Conclusion & 6 CFT Signatures */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6E6E6]">
+      <div className="surface-card p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E4E7EC]">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-bold text-[#151515] mr-1">Risk Conclusion:</span>
+            <span className="text-sm font-bold text-[#111318] mr-2">Risk Conclusion:</span>
             {(['Acceptable', 'Not Acceptable', 'Pending'] as const).map((conc) => (
               <button
                 key={conc}
                 type="button"
                 onClick={() => setForm({ ...form, conclusion: conc })}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border cursor-pointer ${
+                className={`h-8 px-4 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
                   form.conclusion === conc
                     ? conc === 'Acceptable'
                       ? 'bg-emerald-600 text-white border-emerald-600'
                       : conc === 'Not Acceptable'
                       ? 'bg-red-600 text-white border-red-600'
-                      : 'bg-[#151515] text-white border-[#151515]'
-                    : 'bg-white text-[#666666] border-[#E6E6E6]'
+                      : 'bg-[#111318] text-white border-[#111318]'
+                    : 'bg-white text-[#5C6470] border-[#E4E7EC] hover:border-[#111318]'
                 }`}
               >
                 {conc}
@@ -342,16 +338,16 @@ export function RiskAnalysisCheckSheet({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#666666]">Overall Risk Level:</span>
+            <span className="text-xs font-bold text-[#5C6470]">Overall Risk Level:</span>
             {(['H', 'L', 'M'] as const).map((lvl) => (
               <button
                 key={lvl}
                 type="button"
                 onClick={() => setForm({ ...form, overallRiskLevel: lvl })}
-                className={`w-9 h-8 rounded-md text-xs font-extrabold border cursor-pointer ${
+                className={`w-10 h-8 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
                   form.overallRiskLevel === lvl
                     ? 'bg-[#F28C00] text-white border-[#F28C00]'
-                    : 'bg-white text-[#151515] border-[#E6E6E6]'
+                    : 'bg-white text-[#111318] border-[#E4E7EC] hover:border-[#111318]'
                 }`}
               >
                 {lvl}
@@ -360,10 +356,10 @@ export function RiskAnalysisCheckSheet({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {form.cftSignatures.map((sig) => (
-            <div key={sig.slot} className="p-3 border border-[#E6E6E6] rounded-lg flex items-center gap-2">
-              <span className="text-xs font-bold text-[#666666]">{sig.slot})</span>
+            <div key={sig.slot} className="p-4 bg-[#F8F9FB] rounded-lg flex items-center gap-2">
+              <span className="text-xs font-bold text-[#5C6470] tabular-nums">{sig.slot})</span>
               <input
                 type="text"
                 value={sig.name}
@@ -376,7 +372,7 @@ export function RiskAnalysisCheckSheet({
                   }))
                 }
                 placeholder={`${sig.department} Member Sign`}
-                className="flex-1 px-2.5 py-1.5 text-xs border border-[#E6E6E6] rounded-md"
+                className="field-input flex-1 !h-8 !text-xs"
               />
               {currentUser && (
                 <button
@@ -392,7 +388,7 @@ export function RiskAnalysisCheckSheet({
                       ),
                     }))
                   }
-                  className="p-1.5 text-[#E87500] hover:bg-[#FFF4E5] rounded cursor-pointer"
+                  className="w-8 h-8 inline-flex items-center justify-center text-[#D97700] hover:bg-[#FFF5E8] rounded-md cursor-pointer shrink-0"
                 >
                   <PenLine className="w-3.5 h-3.5" />
                 </button>

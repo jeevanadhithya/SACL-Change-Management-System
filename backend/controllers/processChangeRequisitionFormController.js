@@ -31,9 +31,17 @@ async function fetchFullPCRF(pcrfId) {
   });
 }
 
-exports.listPCRFs = async (_req, res) => {
+exports.listPCRFs = async (req, res) => {
   try {
-    const baseRows = await query(`SELECT * FROM dbo.ChangeRequests ORDER BY createdAt DESC`);
+    const isCompanyUser = req.user?.role === 'COMPANY_USER' && req.user?.companyId;
+    const baseRows = isCompanyUser
+      ? await query(
+          `SELECT * FROM dbo.ChangeRequests
+           WHERE companyId = @companyId OR createdByEmployeeId = @empId
+           ORDER BY createdAt DESC`,
+          { companyId: req.user.companyId, empId: req.user.employeeId },
+        )
+      : await query(`SELECT * FROM dbo.ChangeRequests ORDER BY createdAt DESC`);
     const pcrfs = await Promise.all(baseRows.recordset.map((r) => fetchFullPCRF(r.id)));
     return res.json({ pcrfs: pcrfs.filter(Boolean) });
   } catch (err) {
@@ -65,16 +73,20 @@ exports.createPCRF = async (req, res) => {
     }
 
     const countRes = await query(`SELECT COUNT(*) AS total FROM dbo.ChangeRequests`);
-    const nextSeq = 45 + (countRes.recordset[0]?.total || 0);
+    const nextSeq = 1 + (countRes.recordset[0]?.total || 0);
+    const year = new Date().getFullYear();
     const id = `pcrf-${Date.now()}`;
-    const pcrfNo = `PCRF-2026-${String(nextSeq).padStart(3, '0')}`;
+    const pcrfNo = `PCRF-${year}-${String(nextSeq).padStart(3, '0')}`;
     const today = new Date().toISOString().slice(0, 10);
+    const actorName = req.user?.name || body.createdBy || '';
+    const actorEmpId = req.user?.employeeId || body.createdByEmployeeId || '';
+    const actorRole = req.user?.role || 'EMPLOYEE';
 
     const form1 = {
       pcrfNo,
-      requisitionBy: body.createdBy || 'R. Karthik',
-      requisitionerSign: body.createdBy || 'R. Karthik',
-      department: body.department || 'Machine Shop',
+      requisitionBy: actorName,
+      requisitionerSign: actorName,
+      department: body.department || req.user?.department || '',
       requisitionerHodSign: '',
       date: today,
       customer: body.customer,
@@ -124,13 +136,26 @@ exports.createPCRF = async (req, res) => {
       forwardedTo: 'Department HOD / CFT',
     };
 
+    const resolvedRev = (body.currentRevision || 'Rev 01').trim();
+    const shortRev = resolvedRev.replace(/^Rev\s*/i, '') || '01';
+    const drawingAndPart = body.drawingNumber?.trim()
+      ? `${body.partNo} / ${body.drawingNumber.trim()}`
+      : body.partNo;
+
     const synced = syncDownstreamFromPCRF(form1, {
       form2: { slNo: pcrfNo, date: today, to: 'CFT', requirements: [], conclusion: 'PENDING', cftSignatures: [] },
       form3: { date: today, riskRows: [], conclusion: 'Pending', overallRiskLevel: 'L', cftSignatures: [] },
-      form4: { projectName: `${body.customer} — ${body.partName}`, preparedDate: today, goForNextPhase: 'Pending', activities: [] },
+      form4: {
+        projectName: `${body.customer} — ${body.partName}`,
+        drawingPartNo: drawingAndPart,
+        revision: shortRev,
+        preparedDate: today,
+        goForNextPhase: 'Pending',
+        activities: [],
+      },
       form5: { items: [], informedTo: {} },
-      form6: { ptr1: { sampleStatus: 'Pending' }, ptr2: { sampleStatus: 'Pending' }, ptr3: { sampleStatus: 'Pending' } },
-      form7: { submissionStatus: 'Pending' },
+      form6: { revNumber: resolvedRev, ptr1: { sampleStatus: 'Pending' }, ptr2: { sampleStatus: 'Pending' }, ptr3: { sampleStatus: 'Pending' } },
+      form7: { revNumber: resolvedRev, submissionStatus: 'Pending' },
     });
 
     await query(
@@ -141,13 +166,13 @@ exports.createPCRF = async (req, res) => {
       {
         id,
         pcrfNo,
-        companyId: body.companyId || null,
-        companyName: body.companyName || 'Sakthi Auto Component Limited',
+        companyId: body.companyId || req.user?.companyId || null,
+        companyName: body.companyName || req.user?.companyName || null,
         title: body.title || `${body.partName} — ${body.particulars || 'Process Change'}`,
         priority: body.priority || 'Normal',
-        createdBy: body.createdBy || 'R. Karthik',
-        createdByEmployeeId: body.createdByEmployeeId || 'EMP101',
-        dueDate: body.dueDate || '2027-01-15',
+        createdBy: actorName,
+        createdByEmployeeId: actorEmpId,
+        dueDate: body.dueDate || today,
         workflowJson: JSON.stringify([
           { key: 'PCRF', label: 'Process Change Requisition', status: 'IN_PROGRESS' },
           { key: 'FEASIBILITY', label: 'Feasibility Report', status: 'PENDING' },
@@ -164,8 +189,8 @@ exports.createPCRF = async (req, res) => {
           {
             id: `hist-${Date.now()}`,
             timestamp: new Date().toISOString(),
-            actorName: body.createdBy || 'R. Karthik',
-            actorRole: 'EMPLOYEE',
+            actorName,
+            actorRole,
             action: `Raised Change Request ${pcrfNo}`,
             stage: 'Process Change Requisition',
             comments: body.reasonForChange,

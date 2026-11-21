@@ -42,11 +42,13 @@ export function PCRFListPage({
   });
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-[#151515]">All Process Change Requests</h2>
-          <p className="text-sm text-[#666666]">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-2xl leading-8 font-extrabold text-[#111318] tracking-tight">
+            All Process Change Requests
+          </h2>
+          <p className="text-sm text-[#5C6470]">
             Select any PCRF to fill or inspect all 7 interconnected Sakthi Auto consultancy forms.
           </p>
         </div>
@@ -54,7 +56,7 @@ export function PCRFListPage({
           <button
             type="button"
             onClick={onCreateNew}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-sm font-bold whitespace-nowrap shrink-0 cursor-pointer"
+            className="btn-primary shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Create New Change Request</span>
@@ -62,18 +64,18 @@ export function PCRFListPage({
         )}
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-1 p-1 bg-[#F7F7F7] rounded-lg overflow-x-auto no-scrollbar max-w-full">
+      {/* Filter Bar (8pt Grid: p-4, gap-4, h-10 controls) */}
+      <div className="surface-card p-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-1 p-1 bg-[#F4F5F7] rounded-lg overflow-x-auto no-scrollbar max-w-full">
           {['ALL', 'In Review', 'In Implementation', 'Returned', 'Closed', 'Rejected'].map((st) => (
             <button
               key={st}
               type="button"
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors ${
+              className={`h-8 px-4 rounded-md text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors ${
                 statusFilter === st
-                  ? 'bg-[#151515] text-white'
-                  : 'text-[#666666] hover:text-[#151515]'
+                  ? 'bg-[#121417] text-white'
+                  : 'text-[#5C6470] hover:text-[#111318]'
               }`}
             >
               {st === 'ALL' ? 'All Requests' : st}
@@ -82,13 +84,13 @@ export function PCRFListPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Filter className="w-4 h-4 text-[#666666]" />
+          <Filter className="w-4 h-4 text-[#5C6470] shrink-0" />
           {companies.length > 0 && (
             <select
               aria-label="Filter by company or plant unit"
               value={companyFilter}
               onChange={(e) => setCompanyFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold border border-[#E6E6E6] rounded-lg bg-white focus:outline-none focus:border-[#F28C00]"
+              className="h-10 px-4 text-xs font-semibold text-[#111318] border border-[#D5DAE1] rounded-lg bg-white focus:outline-none focus:border-[#F28C00]"
             >
               <option value="ALL">All Companies / Units</option>
               {companies.map((c) => (
@@ -102,7 +104,7 @@ export function PCRFListPage({
             aria-label="Filter by facility"
             value={facilityFilter}
             onChange={(e) => setFacilityFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs font-semibold border border-[#E6E6E6] rounded-lg bg-white focus:outline-none focus:border-[#F28C00]"
+            className="h-10 px-4 text-xs font-semibold text-[#111318] border border-[#D5DAE1] rounded-lg bg-white focus:outline-none focus:border-[#F28C00]"
           >
             <option value="ALL">All Facilities</option>
             <option value="Foundry">Foundry</option>
@@ -112,25 +114,25 @@ export function PCRFListPage({
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl overflow-hidden">
+      <div className="surface-card overflow-hidden">
         <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#F7F7F7] border-b border-[#E6E6E6] text-[11px] font-bold text-[#666666] uppercase tracking-wider">
-                <th className="py-3 px-4">PCRF No.</th>
-                <th className="py-3 px-4">Part &amp; Customer</th>
-                <th className="py-3 px-4">Type / Facility</th>
-                <th className="py-3 px-4">Department</th>
-                <th className="py-3 px-4">Current Stage</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Due Date</th>
-                <th className="py-3 px-4 text-right">Action</th>
+              <tr className="bg-[#F8F9FB] border-b border-[#E4E7EC] text-[11px] font-semibold text-[#5C6470] uppercase tracking-wider">
+                <th className="h-10 px-6">PCRF No.</th>
+                <th className="h-10 px-4">Part &amp; Customer</th>
+                <th className="h-10 px-4">Type / Facility</th>
+                <th className="h-10 px-4">Department</th>
+                <th className="h-10 px-4">Current Stage</th>
+                <th className="h-10 px-4">Status</th>
+                <th className="h-10 px-4">Due Date</th>
+                <th className="h-10 px-6 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E6E6E6] text-sm">
+            <tbody className="divide-y divide-[#E4E7EC] text-sm">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#666666]">
+                  <td colSpan={8} className="py-12 px-6 text-center text-xs text-[#5C6470]">
                     No Change Requests match your filter criteria.
                   </td>
                 </tr>
@@ -141,43 +143,43 @@ export function PCRFListPage({
                     <tr
                       key={p.id}
                       onClick={() => onOpenPCRF(p.id)}
-                      className="hover:bg-[#FFF4E5]/30 transition-colors cursor-pointer"
+                      className="hover:bg-[#FFF6EB]/50 transition-colors cursor-pointer"
                     >
-                      <td className="py-3.5 px-4 font-mono text-xs font-bold text-[#151515] whitespace-nowrap">
+                      <td className="py-4 px-6 font-mono text-xs font-bold text-[#111318] whitespace-nowrap">
                         {p.pcrfNo}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <p className="font-semibold text-[#151515]">{p.form1.partName}</p>
-                        <p className="text-xs text-[#666666]">
+                      <td className="py-4 px-4">
+                        <p className="font-semibold text-[#111318]">{p.form1.partName}</p>
+                        <p className="text-xs text-[#5C6470] mt-1">
                           <span className="font-mono">{p.form1.partNo}</span> · {p.form1.customer}
                           {p.companyName ? ` · ${p.companyName}` : ''}
                         </p>
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-[#151515]">
+                      <td className="py-4 px-4 text-xs text-[#111318]">
                         <span>{p.form1.changeType}</span>
-                        <span className="text-[#666666]"> · {p.form1.facilityScope}</span>
+                        <span className="text-[#5C6470]"> · {p.form1.facilityScope}</span>
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-[#666666]">{p.form1.department}</td>
-                      <td className="py-3.5 px-4 text-xs font-semibold text-[#151515]">
+                      <td className="py-4 px-4 text-xs text-[#5C6470]">{p.form1.department}</td>
+                      <td className="py-4 px-4 text-xs font-semibold text-[#111318]">
                         {stageObj?.label || p.currentStage}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-4 px-4">
                         <StatusText status={p.overallStatus} />
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-xs text-[#666666] tabular-nums whitespace-nowrap">
+                      <td className="py-4 px-4 font-mono text-xs text-[#5C6470] tabular-nums whitespace-nowrap">
                         {p.dueDate}
                       </td>
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-4 px-6 text-right">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             onOpenPCRF(p.id);
                           }}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#E6E6E6] hover:border-[#F28C00] hover:text-[#E87500] text-xs font-semibold text-[#151515] cursor-pointer"
+                          className="btn-compact border border-[#D5DAE1] bg-white hover:border-[#F28C00] hover:text-[#D97700] text-[#111318]"
                         >
                           <span>Open</span>
-                          <ArrowUpRight className="w-3.5 h-3.5" />
+                          <ArrowUpRight className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>

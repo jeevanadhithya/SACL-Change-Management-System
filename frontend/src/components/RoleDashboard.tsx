@@ -22,6 +22,7 @@ interface RoleDashboardProps {
   companies?: CompanyRecord[];
   canCreatePCRF?: boolean;
   onCreateCompany?: (payload: CreateCompanyPayload) => Promise<void>;
+  onViewCompany?: (companyId: string) => void;
   onOpenPCRF: (id: string) => void;
   onCreateNew: () => void;
   onNavigate: (nav: NavSectionKey) => void;
@@ -33,6 +34,7 @@ export function RoleDashboard({
   companies = [],
   canCreatePCRF = true,
   onCreateCompany,
+  onViewCompany,
   onOpenPCRF,
   onCreateNew,
   onNavigate,
@@ -49,7 +51,7 @@ export function RoleDashboard({
   const [accUsername, setAccUsername] = useState('');
   const [accFullName, setAccFullName] = useState('');
   const [accPassword, setAccPassword] = useState('');
-  const [accRole, setAccRole] = useState<UserRole>('HOD');
+  const [accRole, setAccRole] = useState<UserRole>('COMPANY_USER');
   const [companySubmitting, setCompanySubmitting] = useState(false);
   const [companyError, setCompanyError] = useState<string | null>(null);
   const [companySuccess, setCompanySuccess] = useState<string | null>(null);
@@ -107,6 +109,10 @@ export function RoleDashboard({
       title: 'My Change Requests',
       subtitle: 'Raise new Process Change Requisitions and track real-time approval progress.',
     },
+    COMPANY_USER: {
+      title: user.companyName ? `${user.companyName} — Portal` : 'Company Representative Portal',
+      subtitle: 'Raise and monitor Process Change Requisitions for your assigned company and manufactured parts.',
+    },
     CFT: {
       title: 'CFT Engineering Workspace',
       subtitle: 'Feasibility evaluations, risk analysis matrices, checklists, PTR & PPAP execution.',
@@ -121,6 +127,7 @@ export function RoleDashboard({
     },
   };
 
+  const isRequisitionerOnly = user.role === 'EMPLOYEE' || user.role === 'COMPANY_USER';
   const head = roleHeadline[user.role] || roleHeadline.EMPLOYEE;
 
   async function handleAdminAddCompany(e: React.FormEvent) {
@@ -131,9 +138,9 @@ export function RoleDashboard({
       return;
     }
     if (createInitialAccount) {
-      if (!accUsername.trim() || !accFullName.trim() || accPassword.trim().length < 6) {
+      if (!accUsername.trim() || !accFullName.trim() || accPassword.trim().length < 4) {
         setCompanyError(
-          'Individual company account requires Username, Full Name, and Password (min 6 characters).',
+          'Individual company account requires Username, Full Name, and Password (min 4 characters).',
         );
         return;
       }
@@ -185,23 +192,25 @@ export function RoleDashboard({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Role Header + Primary Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#E87500]">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#D97700]">
             {RoleDisplayLabel(user.role)} · {user.department}
           </p>
-          <h2 className="text-2xl font-extrabold text-[#151515] mt-0.5">{head.title}</h2>
-          <p className="text-sm text-[#666666]">{head.subtitle}</p>
+          <h2 className="text-2xl leading-8 font-extrabold text-[#111318] tracking-tight">
+            {head.title}
+          </h2>
+          <p className="text-sm text-[#5C6470]">{head.subtitle}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
-          {user.role !== 'EMPLOYEE' && (
+        <div className="flex flex-wrap items-center gap-4 shrink-0">
+          {!isRequisitionerOnly && (
             <button
               type="button"
               onClick={() => onNavigate('approvals')}
-              className="px-4 py-2.5 rounded-lg border border-[#151515] text-xs font-bold text-[#151515] hover:bg-[#151515] hover:text-white transition-colors cursor-pointer"
+              className="btn-secondary"
             >
               Approval Center ({pendingApproval})
             </button>
@@ -210,7 +219,7 @@ export function RoleDashboard({
             <button
               type="button"
               onClick={onCreateNew}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold whitespace-nowrap cursor-pointer shadow-sm"
+              className="btn-primary"
             >
               <Plus className="w-4 h-4" />
               <span>Create New Change Request</span>
@@ -219,76 +228,84 @@ export function RoleDashboard({
         </div>
       </div>
 
-      {/* Role-Tailored KPI Strip */}
+      {/* Role-Tailored KPI Strip (8pt Grid: gap-4, p-6 cards) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-[#E6E6E6] rounded-xl p-5">
-          <div className="flex items-center justify-between text-xs text-[#666666]">
-            <span>{user.role === 'EMPLOYEE' ? 'My Total Requests' : 'Total Change Requests'}</span>
-            <FileText className="w-4 h-4 text-[#151515]" />
+        <div className="surface-card p-6">
+          <div className="flex items-center justify-between text-xs font-medium text-[#5C6470]">
+            <span>
+              {user.role === 'COMPANY_USER'
+                ? 'Company Requests'
+                : user.role === 'EMPLOYEE'
+                ? 'My Total Requests'
+                : 'Total Change Requests'}
+            </span>
+            <FileText className="w-4 h-4 text-[#111318] shrink-0" />
           </div>
-          <p className="text-3xl font-extrabold text-[#151515] mt-2 tabular-nums">
+          <p className="text-[32px] leading-10 font-extrabold text-[#111318] mt-4 tabular-nums tracking-tight">
             {user.role === 'EMPLOYEE' ? myRequests.length : total}
           </p>
-          <p className="text-xs text-[#666666] mt-1 tabular-nums">
+          <p className="text-xs text-[#5C6470] mt-2 tabular-nums">
             {openCount} open across plant
           </p>
         </div>
 
-        <div className="bg-white border border-[#E6E6E6] rounded-xl p-5">
-          <div className="flex items-center justify-between text-xs text-[#666666]">
-            <span>{user.role === 'EMPLOYEE' ? 'In Review / Trial' : 'Pending My Action'}</span>
-            <Clock className="w-4 h-4 text-[#F28C00]" />
+        <div className="surface-card p-6">
+          <div className="flex items-center justify-between text-xs font-medium text-[#5C6470]">
+            <span>{isRequisitionerOnly ? 'In Review / Trial' : 'Pending My Action'}</span>
+            <Clock className="w-4 h-4 text-[#F28C00] shrink-0" />
           </div>
-          <p className="text-3xl font-extrabold text-[#E87500] mt-2 tabular-nums">
-            {user.role === 'EMPLOYEE'
+          <p className="text-[32px] leading-10 font-extrabold text-[#D97700] mt-4 tabular-nums tracking-tight">
+            {user.role === 'COMPANY_USER'
+              ? pcrfs.filter((r) => r.overallStatus !== 'Closed').length
+              : user.role === 'EMPLOYEE'
               ? myRequests.filter((r) => r.overallStatus !== 'Closed').length
               : pendingApproval}
           </p>
-          <p className="text-xs text-[#666666] mt-1">
+          <p className="text-xs text-[#5C6470] mt-2">
             Role-authorized queue
           </p>
         </div>
 
-        <div className="bg-white border border-[#E6E6E6] rounded-xl p-5">
-          <div className="flex items-center justify-between text-xs text-[#666666]">
+        <div className="surface-card p-6">
+          <div className="flex items-center justify-between text-xs font-medium text-[#5C6470]">
             <span>Critical / High Risk</span>
-            <AlertTriangle className="w-4 h-4 text-red-600" />
+            <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
           </div>
-          <p className="text-3xl font-extrabold text-[#151515] mt-2 tabular-nums">
+          <p className="text-[32px] leading-10 font-extrabold text-[#111318] mt-4 tabular-nums tracking-tight">
             {criticalCount}
           </p>
-          <p className="text-xs text-[#666666] mt-1 tabular-nums">
+          <p className="text-xs text-[#5C6470] mt-2 tabular-nums">
             {processCount} Process · {productCount} Product
           </p>
         </div>
 
-        <div className="bg-white border border-[#E6E6E6] rounded-xl p-5">
-          <div className="flex items-center justify-between text-xs text-[#666666]">
+        <div className="surface-card p-6">
+          <div className="flex items-center justify-between text-xs font-medium text-[#5C6470]">
             <span>Completed &amp; Closed</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           </div>
-          <p className="text-3xl font-extrabold text-emerald-700 mt-2 tabular-nums">
+          <p className="text-[32px] leading-10 font-extrabold text-emerald-700 mt-4 tabular-nums tracking-tight">
             {closedCount}
           </p>
-          <p className="text-xs text-[#666666] mt-1">PPAP &amp; PSW dispatched</p>
+          <p className="text-xs text-[#5C6470] mt-2">PPAP &amp; PSW dispatched</p>
         </div>
       </div>
 
-      {/* Guided Quick-Action Workflow Strip */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Flattened 3-Step Guided Quick-Action Workflow Strip (Single Elevation) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {canCreatePCRF ? (
           <button
             type="button"
             onClick={onCreateNew}
-            className="text-left p-3.5 rounded-lg border border-[#E6E6E6] hover:border-[#F28C00] hover:bg-[#FFF4E5]/25 transition-colors cursor-pointer group"
+            className="surface-card p-6 text-left hover:border-[#F28C00] hover:bg-[#FFF6EB]/40 transition-colors cursor-pointer group"
           >
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[#E87500]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#D97700]">
               Step 1 · Initiate
             </p>
-            <p className="text-sm font-bold text-[#151515] mt-0.5 group-hover:text-[#E87500] transition-colors">
+            <p className="text-sm font-bold text-[#111318] mt-2 group-hover:text-[#D97700] transition-colors">
               Raise New Change Request →
             </p>
-            <p className="text-xs text-[#666666] mt-0.5">
+            <p className="text-xs text-[#5C6470] mt-1 leading-5">
               Select plant unit, 4M classification &amp; part details (QF/07/MRO-15).
             </p>
           </button>
@@ -296,15 +313,15 @@ export function RoleDashboard({
           <button
             type="button"
             onClick={() => onNavigate('pcrfs')}
-            className="text-left p-3.5 rounded-lg border border-[#E6E6E6] hover:border-[#F28C00] hover:bg-[#FFF4E5]/25 transition-colors cursor-pointer group"
+            className="surface-card p-6 text-left hover:border-[#F28C00] hover:bg-[#FFF6EB]/40 transition-colors cursor-pointer group"
           >
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[#E87500]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#D97700]">
               Step 1 · Track
             </p>
-            <p className="text-sm font-bold text-[#151515] mt-0.5 group-hover:text-[#E87500] transition-colors">
+            <p className="text-sm font-bold text-[#111318] mt-2 group-hover:text-[#D97700] transition-colors">
               Browse All Change Requests →
             </p>
-            <p className="text-xs text-[#666666] mt-0.5">
+            <p className="text-xs text-[#5C6470] mt-1 leading-5">
               Inspect active plant PCRFs, 4M changes, and department submissions.
             </p>
           </button>
@@ -313,31 +330,31 @@ export function RoleDashboard({
         <button
           type="button"
           onClick={() => onNavigate('forms-hub')}
-          className="text-left p-3.5 rounded-lg border border-[#E6E6E6] hover:border-[#F28C00] hover:bg-[#FFF4E5]/25 transition-colors cursor-pointer group"
+          className="surface-card p-6 text-left hover:border-[#F28C00] hover:bg-[#FFF6EB]/40 transition-colors cursor-pointer group"
         >
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#E87500]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#D97700]">
             Step 2 · Fill &amp; Sync
           </p>
-          <p className="text-sm font-bold text-[#151515] mt-0.5 group-hover:text-[#E87500] transition-colors">
+          <p className="text-sm font-bold text-[#111318] mt-2 group-hover:text-[#D97700] transition-colors">
             Open 7 Interconnected Forms →
           </p>
-          <p className="text-xs text-[#666666] mt-0.5">
+          <p className="text-xs text-[#5C6470] mt-1 leading-5">
             Feasibility, Risk Analysis, Timing Plan, Checklist, PTR &amp; PPAP.
           </p>
         </button>
 
         <button
           type="button"
-          onClick={() => onNavigate(user.role === 'EMPLOYEE' ? 'pcrfs' : 'approvals')}
-          className="text-left p-3.5 rounded-lg border border-[#E6E6E6] hover:border-[#F28C00] hover:bg-[#FFF4E5]/25 transition-colors cursor-pointer group"
+          onClick={() => onNavigate(isRequisitionerOnly ? 'pcrfs' : 'approvals')}
+          className="surface-card p-6 text-left hover:border-[#F28C00] hover:bg-[#FFF6EB]/40 transition-colors cursor-pointer group"
         >
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#E87500]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#D97700]">
             Step 3 · Review &amp; Print
           </p>
-          <p className="text-sm font-bold text-[#151515] mt-0.5 group-hover:text-[#E87500] transition-colors">
-            {user.role === 'EMPLOYEE' ? 'Track Status & Print PDFs →' : 'Review Approvals & Print →'}
+          <p className="text-sm font-bold text-[#111318] mt-2 group-hover:text-[#D97700] transition-colors">
+            {isRequisitionerOnly ? 'Track Status & Print PDFs →' : 'Review Approvals & Print →'}
           </p>
-          <p className="text-xs text-[#666666] mt-0.5">
+          <p className="text-xs text-[#5C6470] mt-1 leading-5">
             Sign off pending stage gates and export exact consultancy PDFs.
           </p>
         </button>
@@ -345,24 +362,26 @@ export function RoleDashboard({
 
       {/* Admin-Only Company Management Section directly in Admin Dashboard */}
       {user.role === 'ADMIN' && (
-        <div className="bg-white border border-[#E6E6E6] rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#E6E6E6] flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-[#F28C00]" />
-              <div>
-                <h3 className="text-sm font-bold text-[#151515]">
+        <section className="surface-card overflow-hidden">
+          <div className="surface-header flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-10 h-10 rounded-lg bg-[#FFF6EB] text-[#D97700] flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-[#111318]">
                   Companies &amp; Manufacturing Units (Admin Control)
                 </h3>
-                <p className="text-xs text-[#666666]">
+                <p className="text-xs text-[#5C6470] mt-1">
                   Only System Administrators can register new group companies and plant units.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => onNavigate('companies')}
-                className="px-3 py-1.5 rounded-lg border border-[#E6E6E6] hover:border-[#151515] text-xs font-semibold text-[#151515] cursor-pointer"
+                className="btn-compact border border-[#D5DAE1] bg-white hover:border-[#121417] text-[#111318]"
               >
                 Full Companies Console
               </button>
@@ -373,30 +392,39 @@ export function RoleDashboard({
                   setCompanyError(null);
                   setCompanySuccess(null);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#151515] hover:bg-[#F28C00] text-white text-xs font-bold transition-colors cursor-pointer"
+                className="btn-compact bg-[#121417] hover:bg-[#F28C00] text-white"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 <span>{showAddCompany ? 'Close Form' : 'Add Company'}</span>
               </button>
             </div>
           </div>
 
           {companySuccess && (
-            <div role="status" className="mx-5 mt-4 px-3.5 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+            <div
+              role="status"
+              className="mx-6 mt-4 px-4 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold"
+            >
               {companySuccess}
             </div>
           )}
 
           {showAddCompany && (
-            <form onSubmit={handleAdminAddCompany} className="p-5 bg-[#F7F7F7]/60 border-b border-[#E6E6E6] space-y-4">
+            <form
+              onSubmit={handleAdminAddCompany}
+              className="p-6 bg-[#F8F9FB] border-b border-[#E4E7EC] space-y-6"
+            >
               {companyError && (
-                <div role="alert" className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+                <div
+                  role="alert"
+                  className="px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold"
+                >
                   {companyError}
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label htmlFor="dash-comp-code" className="block text-xs font-semibold text-[#666666] mb-1">
+                  <label htmlFor="dash-comp-code" className="field-label">
                     Company Code *
                   </label>
                   <input
@@ -405,11 +433,11 @@ export function RoleDashboard({
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     placeholder="SACL-MS2"
-                    className="w-full px-3 py-2 text-xs font-mono bg-white border border-[#E6E6E6] rounded-lg"
+                    className="field-input font-mono"
                   />
                 </div>
                 <div className="lg:col-span-2">
-                  <label htmlFor="dash-comp-name" className="block text-xs font-semibold text-[#666666] mb-1">
+                  <label htmlFor="dash-comp-name" className="field-label">
                     Company Name *
                   </label>
                   <input
@@ -418,18 +446,18 @@ export function RoleDashboard({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Sakthi Auto Precision Components Ltd."
-                    className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                    className="field-input"
                   />
                 </div>
                 <div>
-                  <label htmlFor="dash-comp-facility" className="block text-xs font-semibold text-[#666666] mb-1">
+                  <label htmlFor="dash-comp-facility" className="field-label">
                     Facility Scope
                   </label>
                   <select
                     id="dash-comp-facility"
                     value={facilityType}
                     onChange={(e) => setFacilityType(e.target.value as CompanyRecord['facilityType'])}
-                    className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                    className="field-input"
                   >
                     <option value="Machine Shop">Machine Shop</option>
                     <option value="Foundry">Foundry</option>
@@ -438,7 +466,7 @@ export function RoleDashboard({
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="dash-comp-unit" className="block text-xs font-semibold text-[#666666] mb-1">
+                  <label htmlFor="dash-comp-unit" className="field-label">
                     Unit / Division Name
                   </label>
                   <input
@@ -447,11 +475,11 @@ export function RoleDashboard({
                     value={unitName}
                     onChange={(e) => setUnitName(e.target.value)}
                     placeholder="CNC Machine Shop Unit II"
-                    className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                    className="field-input"
                   />
                 </div>
                 <div>
-                  <label htmlFor="dash-comp-location" className="block text-xs font-semibold text-[#666666] mb-1">
+                  <label htmlFor="dash-comp-location" className="field-label">
                     Plant Location *
                   </label>
                   <input
@@ -460,11 +488,11 @@ export function RoleDashboard({
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="Pollachi / Coimbatore, TN"
-                    className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                    className="field-input"
                   />
                 </div>
                 <div>
-                  <label htmlFor="dash-comp-gst" className="block text-xs font-semibold text-[#666666] mb-1">
+                  <label htmlFor="dash-comp-gst" className="field-label">
                     GST / Reg No.
                   </label>
                   <input
@@ -473,11 +501,11 @@ export function RoleDashboard({
                     value={gstOrRegNo}
                     onChange={(e) => setGstOrRegNo(e.target.value)}
                     placeholder="33AAACS8812N1Z4"
-                    className="w-full px-3 py-2 text-xs font-mono bg-white border border-[#E6E6E6] rounded-lg"
+                    className="field-input font-mono"
                   />
                 </div>
                 <div>
-                  <label htmlFor="dash-comp-email" className="block text-xs font-semibold text-[#666666] mb-1">
+                  <label htmlFor="dash-comp-email" className="field-label">
                     Contact Email
                   </label>
                   <input
@@ -486,25 +514,26 @@ export function RoleDashboard({
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                     placeholder="plant@sakthiauto.com"
-                    className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                    className="field-input"
                   />
                 </div>
               </div>
-              <div className="pt-3 border-t border-[#E6E6E6] space-y-3">
-                <label className="inline-flex items-center gap-2 text-xs font-bold text-[#151515] cursor-pointer">
+
+              <div className="pt-6 border-t border-[#E4E7EC] space-y-4">
+                <label className="inline-flex items-center gap-2 text-xs font-bold text-[#111318] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={createInitialAccount}
                     onChange={(e) => setCreateInitialAccount(e.target.checked)}
-                    className="rounded border-[#E6E6E6] accent-[#F28C00]"
+                    className="w-4 h-4 rounded border-[#D5DAE1] accent-[#F28C00]"
                   />
                   <span>Create Individual Login Account (Username &amp; Password) for this Company</span>
                 </label>
 
                 {createInitialAccount && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <label htmlFor="dash-acc-user" className="block text-xs font-semibold text-[#666666] mb-1">
+                      <label htmlFor="dash-acc-user" className="field-label">
                         Username *
                       </label>
                       <input
@@ -513,11 +542,11 @@ export function RoleDashboard({
                         value={accUsername}
                         onChange={(e) => setAccUsername(e.target.value)}
                         placeholder="unit2_hod"
-                        className="w-full px-3 py-2 text-xs font-mono bg-white border border-[#E6E6E6] rounded-lg"
+                        className="field-input font-mono"
                       />
                     </div>
                     <div>
-                      <label htmlFor="dash-acc-name" className="block text-xs font-semibold text-[#666666] mb-1">
+                      <label htmlFor="dash-acc-name" className="field-label">
                         Account Holder Name *
                       </label>
                       <input
@@ -526,12 +555,12 @@ export function RoleDashboard({
                         value={accFullName}
                         onChange={(e) => setAccFullName(e.target.value)}
                         placeholder="M. Kannan"
-                        className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                        className="field-input"
                       />
                     </div>
                     <div>
-                      <label htmlFor="dash-acc-pass" className="block text-xs font-semibold text-[#666666] mb-1">
-                        Password (min 6 chars) *
+                      <label htmlFor="dash-acc-pass" className="field-label">
+                        Password (min 4 chars) *
                       </label>
                       <input
                         id="dash-acc-pass"
@@ -539,19 +568,20 @@ export function RoleDashboard({
                         value={accPassword}
                         onChange={(e) => setAccPassword(e.target.value)}
                         placeholder="Enter password"
-                        className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                        className="field-input"
                       />
                     </div>
                     <div>
-                      <label htmlFor="dash-acc-role" className="block text-xs font-semibold text-[#666666] mb-1">
+                      <label htmlFor="dash-acc-role" className="field-label">
                         JWT Access Role
                       </label>
                       <select
                         id="dash-acc-role"
                         value={accRole}
                         onChange={(e) => setAccRole(e.target.value as UserRole)}
-                        className="w-full px-3 py-2 text-xs bg-white border border-[#E6E6E6] rounded-lg"
+                        className="field-input"
                       >
+                        <option value="COMPANY_USER">Company Representative</option>
                         <option value="EMPLOYEE">Employee / Requisitioner</option>
                         <option value="HOD">Head of Department (HOD)</option>
                         <option value="HOF">Head of Foundry (HOF)</option>
@@ -569,9 +599,9 @@ export function RoleDashboard({
                 <button
                   type="submit"
                   disabled={companySubmitting}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#F28C00] hover:bg-[#E87500] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                  className="btn-primary"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                   <span>{companySubmitting ? 'Saving...' : 'Save Company Unit'}</span>
                 </button>
               </div>
@@ -581,64 +611,79 @@ export function RoleDashboard({
           <div className="overflow-x-auto no-scrollbar">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-[#F7F7F7] border-b border-[#E6E6E6] text-[11px] font-bold text-[#666666] uppercase">
-                  <th className="py-2.5 px-4">Code</th>
-                  <th className="py-2.5 px-4">Company &amp; Unit</th>
-                  <th className="py-2.5 px-4">Facility Scope</th>
-                  <th className="py-2.5 px-4">Location</th>
-                  <th className="py-2.5 px-4">Status</th>
+                <tr className="bg-[#F8F9FB] border-b border-[#E4E7EC] text-[11px] font-semibold text-[#5C6470] uppercase tracking-wider">
+                  <th className="h-10 px-6">Code</th>
+                  <th className="h-10 px-4">Company &amp; Unit</th>
+                  <th className="h-10 px-4">Facility Scope</th>
+                  <th className="h-10 px-4">Location</th>
+                  <th className="h-10 px-6">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E6E6E6]">
-                {companies.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#F7F7F7]/50">
-                    <td className="py-2.5 px-4 font-mono text-xs font-bold text-[#E87500] whitespace-nowrap">
-                      {c.code}
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <p className="font-semibold text-[#151515]">{c.name}</p>
-                      <p className="text-xs text-[#666666]">{c.unitName}</p>
-                    </td>
-                    <td className="py-2.5 px-4 text-xs text-[#151515]">{c.facilityType}</td>
-                    <td className="py-2.5 px-4 text-xs text-[#666666]">{c.location}</td>
-                    <td className="py-2.5 px-4 text-xs font-semibold text-emerald-700">
-                      {c.active ? 'Active' : 'Inactive'}
+              <tbody className="divide-y divide-[#E4E7EC]">
+                {companies.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 px-6 text-center text-xs text-[#5C6470]">
+                      No companies registered in the database yet. Click &ldquo;Add Company&rdquo; above to add your first plant unit.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  companies.map((c) => (
+                    <tr
+                      key={c.id}
+                      onDoubleClick={() => onViewCompany?.(c.id)}
+                      className="hover:bg-[#FFF6EB]/50 transition-colors cursor-pointer"
+                      title="Double-click to view company details, users & manufactured parts"
+                    >
+                      <td className="py-4 px-6 font-mono text-xs font-bold text-[#D97700] whitespace-nowrap">
+                        {c.code}
+                      </td>
+                      <td className="py-4 px-4">
+                        <p className="font-semibold text-[#111318]">{c.name}</p>
+                        <p className="text-xs text-[#5C6470] mt-1">{c.unitName}</p>
+                      </td>
+                      <td className="py-4 px-4 text-xs text-[#111318]">{c.facilityType}</td>
+                      <td className="py-4 px-4 text-xs text-[#5C6470]">{c.location}</td>
+                      <td className="py-4 px-6 text-xs font-semibold text-emerald-700">
+                        {c.active ? 'Active' : 'Inactive'}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Visualizations Row (Real Derived Data, Clean Sakthi Black/Orange Palette) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* Visualizations Row (Real Derived Data, 8pt Spacing) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Workflow Stage Distribution */}
-        <div className="lg:col-span-2 bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#151515]">Active Requests by Workflow Stage</h3>
+        <div className="lg:col-span-2 surface-card p-6 space-y-6">
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="text-sm font-bold text-[#111318]">Active Requests by Workflow Stage</h3>
             <button
               type="button"
               onClick={() => onNavigate('pcrfs')}
-              className="text-xs font-semibold text-[#E87500] hover:underline cursor-pointer"
+              className="text-xs font-semibold text-[#D97700] hover:underline cursor-pointer"
             >
               View All Change Requests →
             </button>
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-4">
             {stageCounts.slice(0, 8).map((item) => {
               const pct = total === 0 ? 0 : Math.round((item.count / total) * 100);
               return (
-                <div key={item.label} className="grid grid-cols-12 items-center gap-3 text-xs">
-                  <span className="col-span-5 font-medium text-[#151515] truncate">{item.label}</span>
-                  <div className="col-span-5 h-2.5 bg-[#F7F7F7] rounded-full overflow-hidden">
+                <div key={item.label} className="grid grid-cols-12 items-center gap-4 text-xs">
+                  <span className="col-span-5 font-medium text-[#111318] truncate">
+                    {item.label}
+                  </span>
+                  <div className="col-span-5 h-2 bg-[#F4F5F7] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#F28C00] rounded-full"
                       style={{ width: `${Math.max(pct, item.count > 0 ? 12 : 0)}%` }}
                     />
                   </div>
-                  <span className="col-span-2 text-right font-mono font-bold text-[#151515] tabular-nums">
+                  <span className="col-span-2 text-right font-mono font-bold text-[#111318] tabular-nums">
                     {item.count}
                   </span>
                 </div>
@@ -648,32 +693,40 @@ export function RoleDashboard({
         </div>
 
         {/* Department & Change Split */}
-        <div className="bg-white border border-[#E6E6E6] rounded-xl p-5 space-y-4">
-          <h3 className="text-sm font-bold text-[#151515]">Requests by Department</h3>
-          <div className="space-y-3">
-            {deptEntries.map(([dept, cnt]) => {
-              const pct = total === 0 ? 0 : Math.round((cnt / total) * 100);
-              return (
-                <div key={dept} className="space-y-1 text-xs">
-                  <div className="flex justify-between font-semibold">
-                    <span className="text-[#151515]">{dept}</span>
-                    <span className="font-mono tabular-nums text-[#666666]">
-                      {cnt} ({pct}%)
-                    </span>
-                  </div>
-                  <div className="h-2 bg-[#F7F7F7] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#151515] rounded-full" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
+        <div className="surface-card p-6 flex flex-col justify-between gap-6">
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-[#111318]">Requests by Department</h3>
+            <div className="space-y-4">
+              {deptEntries.length === 0 ? (
+                <p className="text-xs text-[#5C6470] py-8 text-center">
+                  No department change requests recorded yet.
+                </p>
+              ) : (
+                deptEntries.map(([dept, cnt]) => {
+                  const pct = total === 0 ? 0 : Math.round((cnt / total) * 100);
+                  return (
+                    <div key={dept} className="space-y-2 text-xs">
+                      <div className="flex justify-between font-semibold">
+                        <span className="text-[#111318]">{dept}</span>
+                        <span className="font-mono tabular-nums text-[#5C6470]">
+                          {cnt} ({pct}%)
+                        </span>
+                      </div>
+                      <div className="h-2 bg-[#F4F5F7] rounded-full overflow-hidden">
+                        <div className="h-full bg-[#121417] rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
-          <div className="pt-3 border-t border-[#E6E6E6] flex items-center justify-between text-xs">
-            <span className="text-[#666666] flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-[#F28C00]" /> Product vs Process
+          <div className="pt-4 border-t border-[#E4E7EC] flex items-center justify-between text-xs">
+            <span className="text-[#5C6470] flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#F28C00]" /> Product vs Process
             </span>
-            <span className="font-mono font-bold text-[#151515] tabular-nums">
+            <span className="font-mono font-bold text-[#111318] tabular-nums">
               {productCount} Prod / {processCount} Proc
             </span>
           </div>
@@ -681,12 +734,14 @@ export function RoleDashboard({
       </div>
 
       {/* Role Action Queue Table */}
-      <div className="bg-white border border-[#E6E6E6] rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#E6E6E6] flex items-center justify-between">
+      <section className="surface-card overflow-hidden">
+        <div className="surface-header flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4 text-[#F28C00]" />
-            <h3 className="text-sm font-bold text-[#151515]">
-              {user.role === 'EMPLOYEE'
+            <h3 className="text-sm font-bold text-[#111318]">
+              {user.role === 'COMPANY_USER'
+                ? 'Company Change Requests'
+                : user.role === 'EMPLOYEE'
                 ? 'My Submitted Change Requests'
                 : 'Priority Action & Approval Queue'}
             </h3>
@@ -694,7 +749,7 @@ export function RoleDashboard({
           <button
             type="button"
             onClick={() => onNavigate('pcrfs')}
-            className="text-xs font-semibold text-[#E87500] hover:underline cursor-pointer"
+            className="text-xs font-semibold text-[#D97700] hover:underline cursor-pointer"
           >
             View All PCRFs
           </button>
@@ -703,60 +758,78 @@ export function RoleDashboard({
         <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="bg-[#F7F7F7] border-b border-[#E6E6E6] text-[11px] font-bold text-[#666666] uppercase">
-                <th className="py-2.5 px-4">PCRF No.</th>
-                <th className="py-2.5 px-4">Part &amp; Customer</th>
-                <th className="py-2.5 px-4">Current Stage</th>
-                <th className="py-2.5 px-4">Priority</th>
-                <th className="py-2.5 px-4">Status</th>
-                <th className="py-2.5 px-4 text-right">Action</th>
+              <tr className="bg-[#F8F9FB] border-b border-[#E4E7EC] text-[11px] font-semibold text-[#5C6470] uppercase tracking-wider">
+                <th className="h-10 px-6">PCRF No.</th>
+                <th className="h-10 px-4">Part &amp; Customer</th>
+                <th className="h-10 px-4">Current Stage</th>
+                <th className="h-10 px-4">Priority</th>
+                <th className="h-10 px-4">Status</th>
+                <th className="h-10 px-6 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E6E6E6]">
-              {(user.role === 'EMPLOYEE' ? myRequests : actionQueue).map((p) => {
-                const stObj = WORKFLOW_STAGE_ORDER.find((s) => s.key === p.currentStage);
-                return (
-                  <tr
-                    key={p.id}
-                    onClick={() => onOpenPCRF(p.id)}
-                    className="hover:bg-[#FFF4E5]/30 cursor-pointer"
-                  >
-                    <td className="py-3 px-4 font-mono text-xs font-bold text-[#151515]">
-                      {p.pcrfNo}
-                    </td>
-                    <td className="py-3 px-4">
-                      <p className="font-semibold text-[#151515]">{p.form1.partName}</p>
-                      <p className="text-xs text-[#666666]">{p.form1.customer}</p>
-                    </td>
-                    <td className="py-3 px-4 text-xs font-semibold text-[#151515]">
-                      {stObj?.label || p.currentStage}
-                    </td>
-                    <td className="py-3 px-4">
-                      <StatusText status={p.priority} />
-                    </td>
-                    <td className="py-3 px-4">
-                      <StatusText status={p.overallStatus} />
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenPCRF(p.id);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#151515] hover:bg-[#F28C00] text-white text-xs font-semibold cursor-pointer transition-colors"
-                      >
-                        <span>Review</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody className="divide-y divide-[#E4E7EC]">
+              {(user.role === 'COMPANY_USER'
+                ? pcrfs
+                : user.role === 'EMPLOYEE'
+                ? myRequests
+                : actionQueue
+              ).length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 px-6 text-center text-xs text-[#5C6470]">
+                    No active Change Requests in this queue yet.
+                  </td>
+                </tr>
+              ) : (
+                (user.role === 'COMPANY_USER'
+                  ? pcrfs
+                  : user.role === 'EMPLOYEE'
+                  ? myRequests
+                  : actionQueue
+                ).map((p) => {
+                  const stObj = WORKFLOW_STAGE_ORDER.find((s) => s.key === p.currentStage);
+                  return (
+                    <tr
+                      key={p.id}
+                      onClick={() => onOpenPCRF(p.id)}
+                      className="hover:bg-[#FFF6EB]/50 transition-colors cursor-pointer"
+                    >
+                      <td className="py-4 px-6 font-mono text-xs font-bold text-[#111318] whitespace-nowrap">
+                        {p.pcrfNo}
+                      </td>
+                      <td className="py-4 px-4">
+                        <p className="font-semibold text-[#111318]">{p.form1.partName}</p>
+                        <p className="text-xs text-[#5C6470] mt-1">{p.form1.customer}</p>
+                      </td>
+                      <td className="py-4 px-4 text-xs font-semibold text-[#111318]">
+                        {stObj?.label || p.currentStage}
+                      </td>
+                      <td className="py-4 px-4">
+                        <StatusText status={p.priority} />
+                      </td>
+                      <td className="py-4 px-4">
+                        <StatusText status={p.overallStatus} />
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenPCRF(p.id);
+                          }}
+                          className="btn-compact bg-[#121417] hover:bg-[#F28C00] text-white"
+                        >
+                          <span>Review</span>
+                          <ArrowUpRight className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

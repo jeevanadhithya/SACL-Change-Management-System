@@ -30,6 +30,10 @@ import {
   verifyPassword,
   type JwtPayload,
 } from './utils/jwtRbac.ts';
+import {
+  sanitizeProfileUpdate,
+  validateSelfPasswordChange,
+} from './utils/profileValidation.ts';
 
 interface AuthenticatedRequest extends express.Request {
   authUser?: JwtPayload;
@@ -51,24 +55,21 @@ function loadDatabase(): DatabaseSchema {
   try {
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
     const parsed = JSON.parse(raw) as Partial<DatabaseSchema>;
-    const seed = buildSeedDatabase();
-    let changed = false;
-    if (!Array.isArray(parsed.companies) || parsed.companies.length === 0) {
-      parsed.companies = seed.companies;
-      changed = true;
-    }
-    const db = {
-      ...seed,
-      ...parsed,
-    } as DatabaseSchema;
-    if (changed) {
-      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
-    }
-    return db;
+    const initial = buildSeedDatabase();
+    return {
+      companies: Array.isArray(parsed.companies) ? parsed.companies : [],
+      users: Array.isArray(parsed.users) && parsed.users.length > 0 ? parsed.users : initial.users,
+      departments: Array.isArray(parsed.departments) ? parsed.departments : [],
+      customers: Array.isArray(parsed.customers) ? parsed.customers : [],
+      parts: Array.isArray(parsed.parts) ? parsed.parts : [],
+      pcrfs: Array.isArray(parsed.pcrfs) ? parsed.pcrfs : [],
+      notifications: Array.isArray(parsed.notifications) ? parsed.notifications : [],
+      auditLogs: Array.isArray(parsed.auditLogs) ? parsed.auditLogs : [],
+    };
   } catch {
-    const seed = buildSeedDatabase();
-    fs.writeFileSync(DB_FILE, JSON.stringify(seed, null, 2), 'utf-8');
-    return seed;
+    const initial = buildSeedDatabase();
+    fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), 'utf-8');
+    return initial;
   }
 }
 
@@ -174,7 +175,8 @@ function createCompanyAccountInDb(
   }
 
   const validRoles = RBAC_ROLES.ALL_AUTHENTICATED;
-  const role: UserRole = payload.role && validRoles.includes(payload.role) ? payload.role : 'EMPLOYEE';
+  const defaultRole: UserRole = company ? 'COMPANY_USER' : 'EMPLOYEE';
+  const role: UserRole = payload.role && validRoles.includes(payload.role) ? payload.role : defaultRole;
 
   const newUser: UserAccount = {
     id: `u-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -279,6 +281,44 @@ async function startServer() {
     res.json({ ok: true, service: 'sakthi-auto-pcms', auth: 'JWT-HS256-RBAC' });
   });
 
+  // Public Database Accounts Directory for Role-Based Portal Access on Login Screen
+  // Returns strictly safe display metadata (never passwords/hashes) directly from live DB
+  app.get('/api/auth/portal-accounts', (_req, res) => {
+    const db = loadDatabase();
+    const roleOrder: Record<UserRole, number> = {
+      EMPLOYEE: 1,
+      HOD: 2,
+      HOF: 3,
+      COF: 4,
+      CFT: 5,
+      CFT_LEADER: 6,
+      PLANT_HEAD: 7,
+      ADMIN: 8,
+      COMPANY_USER: 9,
+    };
+
+    const accounts = db.users
+      .filter((u) => u.active)
+      .sort((a, b) => {
+        const rankDiff = (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+        if (rankDiff !== 0) return rankDiff;
+        return (a.username || a.employeeId).localeCompare(b.username || b.employeeId);
+      })
+      .map((u) => {
+        const company = u.companyId ? db.companies.find((c) => c.id === u.companyId) : null;
+        return {
+          id: u.id,
+          employeeId: u.employeeId,
+          username: u.username || u.employeeId,
+          name: u.name,
+          role: u.role,
+          companyCode: company?.code ?? u.companyCode ?? null,
+        };
+      });
+
+    res.json({ accounts });
+  });
+
   // Public Authentication: Login by Employee ID or Company Username + Password -> HS256 JWT
   app.post('/api/auth/login', (req, res) => {
     const { employeeId, username, password } = req.body as {
@@ -325,6 +365,96 @@ async function startServer() {
       return;
     }
     res.json({ user: enrichUser(found, db.companies), claims: req.authUser });
+  });
+
+  // Self-service Profile Customization: Any authenticated user can update ONLY their own profile fields
+  app.put('/api/auth/profile', requireJwtAuth, (req: AuthenticatedRequest, res) => {
+    const db = loadDatabase();
+    const idx = db.users.findIndex((u) => u.id === req.authUser?.id && u.active);
+    if (idx === -1) {
+      res.status(404).json({ error: 'Active user profile not found.' });
+      return;
+    }
+
+    const existing = db.users[idx];
+    const validated = sanitizeProfileUpdate(existing, (req.body || {}) as Record<string, unknown>);
+    if (!validated.ok) {
+      res.status(400).json({ error: validated.error });
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const updated: UserAccount = {
+      ...existing,
+      ...validated.fields,
+      updatedAt: nowIso,
+    };
+
+    db.users[idx] = updated;
+    db.auditLogs.unshift({
+      id: `al-${Date.now()}`,
+      timestamp: nowIso,
+      actorId: updated.employeeId,
+      actorName: updated.name,
+      actorRole: updated.role,
+      entityType: 'UserProfile',
+      entityId: updated.employeeId,
+      action: 'UPDATED_OWN_PROFILE',
+      details: `${updated.name} (${updated.employeeId}) updated personal profile details.`,
+    });
+
+    saveDatabase(db);
+    const safeUser = enrichUser(updated, db.companies);
+    const freshToken = signJwtToken(safeUser);
+    res.json({ user: safeUser, token: freshToken });
+  });
+
+  // Self-service Password Change: Requires verifying current password
+  app.put('/api/auth/password', requireJwtAuth, (req: AuthenticatedRequest, res) => {
+    const db = loadDatabase();
+    const idx = db.users.findIndex((u) => u.id === req.authUser?.id && u.active);
+    if (idx === -1) {
+      res.status(404).json({ error: 'Active user account not found.' });
+      return;
+    }
+
+    const { currentPassword, newPassword } = (req.body || {}) as {
+      currentPassword?: string;
+      newPassword?: string;
+    };
+    const check = validateSelfPasswordChange({ currentPassword, newPassword });
+    if (!check.ok) {
+      res.status(400).json({ error: check.error });
+      return;
+    }
+
+    const existing = db.users[idx];
+    if (!verifyPassword(check.currentPassword, existing.password)) {
+      res.status(400).json({ error: 'Current password is incorrect.' });
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    db.users[idx] = {
+      ...existing,
+      password: hashPassword(check.newPassword),
+      updatedAt: nowIso,
+    };
+
+    db.auditLogs.unshift({
+      id: `al-${Date.now()}`,
+      timestamp: nowIso,
+      actorId: existing.employeeId,
+      actorName: existing.name,
+      actorRole: existing.role,
+      entityType: 'UserProfile',
+      entityId: existing.employeeId,
+      action: 'CHANGED_OWN_PASSWORD',
+      details: `${existing.name} (${existing.employeeId}) changed their account password.`,
+    });
+
+    saveDatabase(db);
+    res.json({ ok: true, user: enrichUser(db.users[idx], db.companies) });
   });
 
   // Users CRUD — Admin only for listing/creating/toggling accounts
@@ -379,6 +509,152 @@ async function startServer() {
     saveDatabase(db);
     res.status(201).json({ user: enrichUser(result.user, db.companies) });
   });
+
+  // Admin: Update existing user details (name, email, role, department, title, facility, active, companyId)
+  app.put('/api/users/:id', requireJwtAuth, requireRoles('ADMIN'), (req: AuthenticatedRequest, res) => {
+    const db = loadDatabase();
+    const idx = db.users.findIndex((u) => u.id === req.params.id);
+    if (idx === -1) {
+      res.status(404).json({ error: 'User account not found.' });
+      return;
+    }
+
+    const existing = db.users[idx];
+    const body = req.body as Partial<UserAccount>;
+
+    if (body.role && !RBAC_ROLES.ALL_AUTHENTICATED.includes(body.role)) {
+      res.status(400).json({ error: `Invalid role "${body.role}".` });
+      return;
+    }
+
+    // Prevent admin from deactivating or demoting themselves
+    if (existing.id === req.authUser?.id) {
+      if (body.active === false) {
+        res.status(400).json({ error: 'You cannot deactivate your own active Administrator account.' });
+        return;
+      }
+      if (body.role && body.role !== 'ADMIN') {
+        res.status(400).json({ error: 'You cannot remove Administrator role from your own account.' });
+        return;
+      }
+    }
+
+    const nextCompanyId =
+      body.companyId !== undefined ? body.companyId || null : existing.companyId ?? null;
+    const linkedCompany = nextCompanyId
+      ? db.companies.find((c) => c.id === nextCompanyId) || null
+      : null;
+
+    const updated: UserAccount = {
+      ...existing,
+      name: body.name !== undefined && body.name.trim() ? body.name.trim() : existing.name,
+      email: body.email !== undefined ? body.email.trim() : existing.email,
+      role: body.role || existing.role,
+      department:
+        body.department !== undefined && body.department.trim()
+          ? body.department.trim()
+          : existing.department,
+      title: body.title !== undefined && body.title.trim() ? body.title.trim() : existing.title,
+      facility: body.facility || existing.facility,
+      active: typeof body.active === 'boolean' ? body.active : existing.active,
+      companyId: nextCompanyId,
+      companyCode: linkedCompany?.code ?? null,
+      companyName: linkedCompany ? `${linkedCompany.name} (${linkedCompany.unitName})` : null,
+    };
+
+    db.users[idx] = updated;
+    db.auditLogs.unshift({
+      id: `al-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      actorId: req.authUser?.employeeId || 'ADMIN',
+      actorName: req.authUser?.name || 'Administrator',
+      actorRole: req.authUser?.role || 'ADMIN',
+      entityType: 'User',
+      entityId: updated.employeeId,
+      action: 'UPDATED_USER_ACCOUNT',
+      details: `Updated account "${updated.username || updated.employeeId}" (${updated.role}, active=${updated.active}).`,
+    });
+
+    saveDatabase(db);
+    res.json({ user: enrichUser(updated, db.companies) });
+  });
+
+  // Admin: Change user password (re-hashed via scrypt)
+  app.put(
+    '/api/users/:id/password',
+    requireJwtAuth,
+    requireRoles('ADMIN'),
+    (req: AuthenticatedRequest, res) => {
+      const db = loadDatabase();
+      const idx = db.users.findIndex((u) => u.id === req.params.id);
+      if (idx === -1) {
+        res.status(404).json({ error: 'User account not found.' });
+        return;
+      }
+
+      const { password } = req.body as { password?: string };
+      const cleanPassword = (password || '').trim();
+      if (cleanPassword.length < 4) {
+        res.status(400).json({ error: 'New password must be at least 4 characters long.' });
+        return;
+      }
+
+      db.users[idx] = {
+        ...db.users[idx],
+        password: hashPassword(cleanPassword),
+      };
+
+      db.auditLogs.unshift({
+        id: `al-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actorId: req.authUser?.employeeId || 'ADMIN',
+        actorName: req.authUser?.name || 'Administrator',
+        actorRole: req.authUser?.role || 'ADMIN',
+        entityType: 'User',
+        entityId: db.users[idx].employeeId,
+        action: 'CHANGED_USER_PASSWORD',
+        details: `Administrator updated password for account "${db.users[idx].username || db.users[idx].employeeId}".`,
+      });
+
+      saveDatabase(db);
+      res.json({ ok: true, user: enrichUser(db.users[idx], db.companies) });
+    },
+  );
+
+  // Admin: Delete user account (blocks self-deletion)
+  app.delete(
+    '/api/users/:id',
+    requireJwtAuth,
+    requireRoles('ADMIN'),
+    (req: AuthenticatedRequest, res) => {
+      const db = loadDatabase();
+      const idx = db.users.findIndex((u) => u.id === req.params.id);
+      if (idx === -1) {
+        res.status(404).json({ error: 'User account not found.' });
+        return;
+      }
+      if (db.users[idx].id === req.authUser?.id) {
+        res.status(400).json({ error: 'You cannot delete your own currently signed-in account.' });
+        return;
+      }
+
+      const [removed] = db.users.splice(idx, 1);
+      db.auditLogs.unshift({
+        id: `al-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actorId: req.authUser?.employeeId || 'ADMIN',
+        actorName: req.authUser?.name || 'Administrator',
+        actorRole: req.authUser?.role || 'ADMIN',
+        entityType: 'User',
+        entityId: removed.employeeId,
+        action: 'DELETED_USER_ACCOUNT',
+        details: `Deleted account "${removed.username || removed.employeeId}" (${removed.name}, ${removed.role}).`,
+      });
+
+      saveDatabase(db);
+      res.json({ ok: true, deletedId: removed.id });
+    },
+  );
 
   // Companies CRUD — Read for authenticated users, Mutations strictly ADMIN JWT only
   app.get('/api/companies', requireJwtAuth, (_req, res) => {
@@ -543,15 +819,270 @@ async function startServer() {
     res.json({ departments: db.departments });
   });
 
+  app.post(
+    '/api/departments',
+    requireJwtAuth,
+    requireRoles('ADMIN', 'COF', 'PLANT_HEAD'),
+    (req: AuthenticatedRequest, res) => {
+      const db = loadDatabase();
+      const { code, name, facility, hodName, memberCount } = req.body as {
+        code?: string;
+        name?: string;
+        facility?: 'Foundry' | 'Machine Shop' | 'Quality' | 'Corporate';
+        hodName?: string;
+        memberCount?: number;
+      };
+      if (!code?.trim() || !name?.trim()) {
+        res.status(400).json({ error: 'Department Code and Name are required.' });
+        return;
+      }
+      const normCode = code.trim().toUpperCase();
+      if (db.departments.some((d) => d.code.toUpperCase() === normCode)) {
+        res.status(409).json({ error: `Department code ${normCode} already exists.` });
+        return;
+      }
+      const department = {
+        id: `dept-${Date.now()}`,
+        code: normCode,
+        name: name.trim(),
+        facility: facility || 'Machine Shop',
+        hodName: hodName?.trim() || '',
+        memberCount: Number(memberCount) || 1,
+      };
+      db.departments.push(department);
+      db.auditLogs.unshift({
+        id: `al-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actorId: req.authUser?.employeeId || 'SYSTEM',
+        actorName: req.authUser?.name || 'System User',
+        actorRole: req.authUser?.role || 'ADMIN',
+        entityType: 'Department',
+        entityId: department.code,
+        action: 'DEPARTMENT_CREATED',
+        details: `Added department ${department.code} — ${department.name}.`,
+      });
+      saveDatabase(db);
+      res.status(201).json({ department });
+    },
+  );
+
   app.get('/api/customers', requireJwtAuth, (_req, res) => {
     const db = loadDatabase();
     res.json({ customers: db.customers });
   });
 
+  app.post(
+    '/api/customers',
+    requireJwtAuth,
+    requireRoles('ADMIN', 'CFT_LEADER', 'COF'),
+    (req: AuthenticatedRequest, res) => {
+      const db = loadDatabase();
+      const { code, name, location, contactPerson } = req.body as {
+        code?: string;
+        name?: string;
+        location?: string;
+        contactPerson?: string;
+      };
+      if (!code?.trim() || !name?.trim()) {
+        res.status(400).json({ error: 'Customer Code and Name are required.' });
+        return;
+      }
+      const normCode = code.trim().toUpperCase();
+      if (db.customers.some((c) => c.code.toUpperCase() === normCode)) {
+        res.status(409).json({ error: `Customer code ${normCode} already exists.` });
+        return;
+      }
+      const customer = {
+        id: `cust-${Date.now()}`,
+        code: normCode,
+        name: name.trim(),
+        location: location?.trim() || '',
+        contactPerson: contactPerson?.trim() || '',
+      };
+      db.customers.push(customer);
+      db.auditLogs.unshift({
+        id: `al-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actorId: req.authUser?.employeeId || 'SYSTEM',
+        actorName: req.authUser?.name || 'System User',
+        actorRole: req.authUser?.role || 'ADMIN',
+        entityType: 'Customer',
+        entityId: customer.code,
+        action: 'CUSTOMER_CREATED',
+        details: `Added OEM customer ${customer.code} — ${customer.name}.`,
+      });
+      saveDatabase(db);
+      res.status(201).json({ customer });
+    },
+  );
+
   app.get('/api/parts', requireJwtAuth, (_req, res) => {
     const db = loadDatabase();
     res.json({ parts: db.parts });
   });
+
+  app.post(
+    '/api/parts',
+    requireJwtAuth,
+    requireRoles('ADMIN', 'CFT_LEADER', 'COF'),
+    (req: AuthenticatedRequest, res) => {
+      const db = loadDatabase();
+      const {
+        companyId,
+        partNumber,
+        partName,
+        customer,
+        facility,
+        currentRevision,
+        drawingNumber,
+        materialGrade,
+        processType,
+        specifications,
+      } = req.body as {
+        companyId?: string | null;
+        partNumber?: string;
+        partName?: string;
+        customer?: string;
+        facility?: 'Foundry' | 'Machine Shop' | 'Foundry & Machine Shop';
+        currentRevision?: string;
+        drawingNumber?: string;
+        materialGrade?: string;
+        processType?: string;
+        specifications?: string;
+      };
+      if (!partNumber?.trim() || !partName?.trim()) {
+        res.status(400).json({ error: 'Part Number and Part Name are required.' });
+        return;
+      }
+      const normNo = partNumber.trim().toUpperCase();
+      if (db.parts.some((p) => p.partNumber.toUpperCase() === normNo)) {
+        res.status(409).json({ error: `Part Number ${normNo} already exists.` });
+        return;
+      }
+      const linkedCompany = companyId
+        ? db.companies.find((c) => c.id === companyId) || null
+        : null;
+      const part = {
+        id: `part-${Date.now()}`,
+        companyId: linkedCompany?.id ?? null,
+        partNumber: normNo,
+        partName: partName.trim(),
+        customer: customer?.trim() || linkedCompany?.name || '',
+        facility: facility || 'Machine Shop',
+        currentRevision: currentRevision?.trim() || 'Rev 01',
+        drawingNumber: drawingNumber?.trim() || '',
+        materialGrade: materialGrade?.trim() || '',
+        processType: processType?.trim() || '',
+        specifications: specifications?.trim() || '',
+      };
+      db.parts.push(part);
+      db.auditLogs.unshift({
+        id: `al-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actorId: req.authUser?.employeeId || 'SYSTEM',
+        actorName: req.authUser?.name || 'System User',
+        actorRole: req.authUser?.role || 'ADMIN',
+        entityType: 'PartMaster',
+        entityId: part.partNumber,
+        action: 'PART_CREATED',
+        details: `Added manufactured part ${part.partNumber} — ${part.partName}${
+          linkedCompany ? ` for ${linkedCompany.code}` : ''
+        }.`,
+      });
+      saveDatabase(db);
+      res.status(201).json({ part });
+    },
+  );
+
+  app.put(
+    '/api/parts/:id',
+    requireJwtAuth,
+    requireRoles('ADMIN', 'CFT_LEADER', 'COF'),
+    (req: AuthenticatedRequest, res) => {
+      const db = loadDatabase();
+      const idx = db.parts.findIndex((p) => p.id === req.params.id);
+      if (idx === -1) {
+        res.status(404).json({ error: 'Part record not found.' });
+        return;
+      }
+      const body = req.body as Partial<DatabaseSchema['parts'][number]>;
+      const nextPartNumber = body.partNumber?.trim()
+        ? body.partNumber.trim().toUpperCase()
+        : db.parts[idx].partNumber;
+
+      if (
+        nextPartNumber !== db.parts[idx].partNumber &&
+        db.parts.some((p) => p.id !== req.params.id && p.partNumber.toUpperCase() === nextPartNumber)
+      ) {
+        res.status(409).json({ error: `Part Number ${nextPartNumber} already exists.` });
+        return;
+      }
+
+      const updated = {
+        ...db.parts[idx],
+        companyId: body.companyId !== undefined ? body.companyId || null : db.parts[idx].companyId ?? null,
+        partNumber: nextPartNumber,
+        partName: body.partName?.trim() || db.parts[idx].partName,
+        customer: body.customer !== undefined ? body.customer.trim() : db.parts[idx].customer,
+        facility: body.facility || db.parts[idx].facility,
+        currentRevision:
+          body.currentRevision !== undefined
+            ? body.currentRevision.trim() || 'Rev 01'
+            : db.parts[idx].currentRevision,
+        drawingNumber:
+          body.drawingNumber !== undefined ? body.drawingNumber.trim() : db.parts[idx].drawingNumber || '',
+        materialGrade:
+          body.materialGrade !== undefined ? body.materialGrade.trim() : db.parts[idx].materialGrade || '',
+        processType:
+          body.processType !== undefined ? body.processType.trim() : db.parts[idx].processType || '',
+        specifications:
+          body.specifications !== undefined ? body.specifications.trim() : db.parts[idx].specifications || '',
+      };
+
+      db.parts[idx] = updated;
+      db.auditLogs.unshift({
+        id: `al-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actorId: req.authUser?.employeeId || 'SYSTEM',
+        actorName: req.authUser?.name || 'System User',
+        actorRole: req.authUser?.role || 'ADMIN',
+        entityType: 'PartMaster',
+        entityId: updated.partNumber,
+        action: 'PART_UPDATED',
+        details: `Updated manufactured part ${updated.partNumber} — ${updated.partName}.`,
+      });
+      saveDatabase(db);
+      res.json({ part: updated });
+    },
+  );
+
+  app.delete(
+    '/api/parts/:id',
+    requireJwtAuth,
+    requireRoles('ADMIN', 'CFT_LEADER', 'COF'),
+    (req: AuthenticatedRequest, res) => {
+      const db = loadDatabase();
+      const idx = db.parts.findIndex((p) => p.id === req.params.id);
+      if (idx === -1) {
+        res.status(404).json({ error: 'Part record not found.' });
+        return;
+      }
+      const [removed] = db.parts.splice(idx, 1);
+      db.auditLogs.unshift({
+        id: `al-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actorId: req.authUser?.employeeId || 'SYSTEM',
+        actorName: req.authUser?.name || 'System User',
+        actorRole: req.authUser?.role || 'ADMIN',
+        entityType: 'PartMaster',
+        entityId: removed.partNumber,
+        action: 'PART_DELETED',
+        details: `Deleted part ${removed.partNumber} — ${removed.partName}.`,
+      });
+      saveDatabase(db);
+      res.json({ ok: true, deletedId: removed.id });
+    },
+  );
 
   app.get('/api/analytics', requireJwtAuth, (_req, res) => {
     const db = loadDatabase();
@@ -562,17 +1093,35 @@ async function startServer() {
     });
   });
 
-  // PCRFs (Authenticated JWT required; Creation strictly role-checked via JWT)
-  app.get('/api/pcrfs', requireJwtAuth, (_req, res) => {
+  // PCRFs (Authenticated JWT required; COMPANY_USER scoped to their company; Creation role-checked via JWT)
+  app.get('/api/pcrfs', requireJwtAuth, (req: AuthenticatedRequest, res) => {
     const db = loadDatabase();
+    if (req.authUser?.role === 'COMPANY_USER' && req.authUser.companyId) {
+      const scoped = db.pcrfs.filter(
+        (p) =>
+          p.companyId === req.authUser!.companyId ||
+          p.createdByEmployeeId === req.authUser!.employeeId,
+      );
+      res.json({ pcrfs: scoped });
+      return;
+    }
     res.json({ pcrfs: db.pcrfs });
   });
 
-  app.get('/api/pcrfs/:id', requireJwtAuth, (req, res) => {
+  app.get('/api/pcrfs/:id', requireJwtAuth, (req: AuthenticatedRequest, res) => {
     const db = loadDatabase();
     const pcrf = db.pcrfs.find((p) => p.id === req.params.id || p.pcrfNo === req.params.id);
     if (!pcrf) {
       res.status(404).json({ error: 'Change request not found.' });
+      return;
+    }
+    if (
+      req.authUser?.role === 'COMPANY_USER' &&
+      req.authUser.companyId &&
+      pcrf.companyId !== req.authUser.companyId &&
+      pcrf.createdByEmployeeId !== req.authUser.employeeId
+    ) {
+      res.status(403).json({ error: 'Access denied to another company change request.' });
       return;
     }
     res.json({ pcrf });
@@ -601,6 +1150,11 @@ async function startServer() {
         currentStatus?: string;
         changeRequired?: string;
         dueDate?: string;
+        currentRevision?: string;
+        drawingNumber?: string;
+        materialGrade?: string;
+        processType?: string;
+        specifications?: string;
       };
 
       if (!body.customer || !body.partName || !body.partNo || !body.reasonForChange) {
@@ -608,13 +1162,22 @@ async function startServer() {
         return;
       }
 
-      const requestedCompanyId = body.companyId || req.authUser?.companyId || undefined;
-      const company = db.companies.find((c) => c.id === requestedCompanyId) || db.companies[0];
-      const nextSeq = 45 + db.pcrfs.length;
-      const pcrfNo = `PCRF-2026-${String(nextSeq).padStart(3, '0')}`;
-      const actorName = req.authUser?.name || 'System User';
-      const actorEmpId = req.authUser?.employeeId || 'EMP101';
-      const actorRole = req.authUser?.role || 'EMPLOYEE';
+      const requestedCompanyId =
+        req.authUser?.role === 'COMPANY_USER' && req.authUser.companyId
+          ? req.authUser.companyId
+          : body.companyId || req.authUser?.companyId || undefined;
+      const company = requestedCompanyId
+        ? db.companies.find((c) => c.id === requestedCompanyId)
+        : undefined;
+      const matchedPart = db.parts.find(
+        (pt) => pt.partNumber.toUpperCase() === body.partNo!.trim().toUpperCase(),
+      );
+      const nextSeq = 1 + db.pcrfs.length;
+      const year = new Date().getFullYear();
+      const pcrfNo = `PCRF-${year}-${String(nextSeq).padStart(3, '0')}`;
+      const actorName = req.authUser!.name;
+      const actorEmpId = req.authUser!.employeeId;
+      const actorRole = req.authUser!.role;
 
       const newRecord = createBlankChangeRequest({
         id: `pcrf-${Date.now()}`,
@@ -625,6 +1188,7 @@ async function startServer() {
         priority: body.priority || 'Normal',
         createdBy: actorName,
         createdByEmployeeId: actorEmpId,
+        actorRole,
         department: body.department || req.authUser?.department || 'Machine Shop',
         customer: body.customer,
         partName: body.partName,
@@ -637,6 +1201,11 @@ async function startServer() {
         currentStatus: body.currentStatus || 'Current baseline',
         changeRequired: body.changeRequired || body.reasonForChange,
         dueDate: body.dueDate || '2027-01-15',
+        currentRevision: body.currentRevision || matchedPart?.currentRevision,
+        drawingNumber: body.drawingNumber || matchedPart?.drawingNumber,
+        materialGrade: body.materialGrade || matchedPart?.materialGrade,
+        processType: body.processType || matchedPart?.processType,
+        specifications: body.specifications || matchedPart?.specifications,
       });
 
       db.pcrfs.unshift(newRecord);

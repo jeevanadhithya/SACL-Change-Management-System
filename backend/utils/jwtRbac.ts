@@ -24,6 +24,7 @@ export const RBAC_ROLES = {
   ALL_AUTHENTICATED: [
     'ADMIN',
     'EMPLOYEE',
+    'COMPANY_USER',
     'HOD',
     'HOF',
     'COF',
@@ -32,7 +33,7 @@ export const RBAC_ROLES = {
     'PLANT_HEAD',
   ] as UserRole[],
   ADMIN_ONLY: ['ADMIN'] as UserRole[],
-  PCRF_CREATORS: ['ADMIN', 'EMPLOYEE', 'HOD', 'HOF', 'COF', 'CFT_LEADER'] as UserRole[],
+  PCRF_CREATORS: ['ADMIN', 'EMPLOYEE', 'COMPANY_USER', 'HOD', 'HOF', 'COF', 'CFT_LEADER'] as UserRole[],
   AUDIT_VIEWERS: ['ADMIN', 'PLANT_HEAD'] as UserRole[],
   MASTER_MANAGERS: ['ADMIN', 'COF', 'CFT_LEADER'] as UserRole[],
   APPROVERS: ['ADMIN', 'HOD', 'HOF', 'COF', 'CFT', 'CFT_LEADER', 'PLANT_HEAD'] as UserRole[],

@@ -4,6 +4,7 @@ export type UserRole =
   | 'COF'
   | 'HOD'
   | 'EMPLOYEE'
+  | 'COMPANY_USER'
   | 'CFT'
   | 'CFT_LEADER'
   | 'PLANT_HEAD';
@@ -14,10 +15,17 @@ export interface UserAccount {
   username?: string;
   name: string;
   email: string;
+  phone?: string;
   role: UserRole;
   department: string;
   title: string;
   facility: 'Foundry' | 'Machine Shop' | 'Corporate' | 'Quality';
+  plantLocation?: string;
+  bio?: string;
+  avatarInitials?: string;
+  emailNotifications?: boolean;
+  inAppNotifications?: boolean;
+  updatedAt?: string;
   companyId?: string | null;
   companyCode?: string | null;
   companyName?: string | null;
@@ -56,11 +64,16 @@ export interface CustomerRecord {
 
 export interface PartMasterRecord {
   id: string;
+  companyId?: string | null;
   partNumber: string;
   partName: string;
   customer: string;
   facility: 'Foundry' | 'Machine Shop' | 'Foundry & Machine Shop';
   currentRevision: string;
+  drawingNumber?: string;
+  materialGrade?: string;
+  processType?: string;
+  specifications?: string;
 }
 
 export type WorkflowStageKey =
